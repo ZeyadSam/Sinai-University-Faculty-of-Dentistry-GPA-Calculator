@@ -500,29 +500,6 @@ function loadSavedGrades() {
   showToast("Saved course grades loaded. No more than two elective options are allowed by the study plan.");
 }
 
-function loadSavedGrades() {
-  const stored = readStorage(STORAGE_KEYS.savedGrades, {});
-  savedGrades = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
-  const entries = Object.entries(savedGrades).filter(([code, entry]) => {
-    const grade = typeof entry === "string" ? entry : entry?.grade;
-    return courseCatalog.some(course => course.code === code) && isValidGrade(grade);
-  });
-  if (!entries.length) {
-    showToast("No saved course grades were found on this device.");
-    return;
-  }
-  selectedCourses = normalizeCourseSelections(entries.map(([code, entry]) => ({
-    code,
-    grade: typeof entry === "string" ? entry : entry?.grade,
-    mark: typeof entry === "object" && entry !== null ? entry.mark : null
-  })));
-  renderCourses();
-  renderSelectedCourses();
-  updateDashboard();
-  saveDraft();
-  showToast("Saved course grades loaded. No more than two elective options are allowed by the study plan.");
-}
-
 function resetCalculator() {
   if (!window.confirm("Reset the selected courses and previous academic record? Saved history will remain unchanged.")) return;
   selectedCourses = [];
@@ -531,7 +508,7 @@ function resetCalculator() {
   elements.previousEarnedCredits.value = "";
   elements.previousPercentage.value = "";
   elements.gradeScale.value = DEFAULT_GRADE_SCALE;
-  elements.search.value = ""
+  elements.search.value = "";
   elements.level.value = "all";
   renderCourses();
   renderSelectedCourses();
