@@ -105,12 +105,13 @@
           <article class="surface-card settings-card">
             <div class="card-heading"><span class="heading-icon blue" aria-hidden="true">↗</span><div><h3>Previous academic record</h3><p>Previous GPA hours, earned credits and actual marks</p></div></div>
             <div class="field-grid">
+              <label class="field-wrap" for="grade-scale"><span>Grading scheme</span><select id="grade-scale" class="select-control"><option value="uploadedKey" selected>Uploaded GPA key (A+ = 4.00)</option><option value="university2023">Sinai University 2023 regulations (A = 4.00)</option></select></label>
               <label class="field-wrap" for="previous-gpa"><span>Previous cumulative GPA</span><input id="previous-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="e.g. 3.25"></label>
               <label class="field-wrap" for="previous-credits"><span>Previous GPA hours (attempted)</span><input id="previous-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 68"></label>
               <label class="field-wrap" for="previous-earned-credits"><span>Previously earned credits</span><input id="previous-earned-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 65"></label>
               <label class="field-wrap" for="previous-percentage"><span>Previous actual weighted mark (%) · optional</span><input id="previous-percentage" type="number" inputmode="decimal" min="0" max="100" step="0.01" placeholder="Actual transcript average"></label>
             </div>
-            <p class="field-hint">GPA hours and earned credits may differ after failures, withdrawals or pass-only courses. If all previous GPA hours were earned, the earned-credit value may match them. Enter your previous actual weighted mark only when known.</p>
+            <p class="field-hint">Select the exact scale shown on your transcript. The uploaded GPA key and the university\u2019s 2023 regulation use different points. The 2023 PDF also contains an impossible C threshold (76.5 to below 70); this calculator uses 67.5 as the contiguous boundary, which must be confirmed with Student Affairs. GPA hours and earned credits may differ after failures, withdrawals or pass-only courses.</p>
           </article>
 
           <article class="surface-card settings-card">
@@ -140,7 +141,7 @@
 
           <article class="surface-card selected-card">
             <div class="card-heading selected-heading">
-              <div><div class="eyebrow">YOUR SEMESTER</div><h3>Selected courses</h3><p>Choose a transcript grade or enter the actual mark; marks map automatically to the official grade.</p></div>
+              <div><div class="eyebrow">YOUR SEMESTER</div><h3>Selected courses</h3><p>Choose a grade or enter the actual mark. For a retake, also enter the previous transcript grade to replace the earlier attempt in CGPA.</p></div>
               <span class="count-badge accent-badge" id="selected-count">0 selected</span>
             </div>
             <div id="selected-courses" class="selected-list" aria-live="polite"></div>
@@ -200,19 +201,39 @@
           <span class="section-index">4.00 GPA SCALE</span>
         </div>
         <article class="surface-card scale-card">
-          <div class="scale-grid">
-            <div class="scale-item"><span class="scale-letter grade-a">A+</span><div><strong>95% and above</strong><small>4.00 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-a">A</span><div><strong>90% to less than 95%</strong><small>3.80 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-a">A−</span><div><strong>85% to less than 90%</strong><small>3.60 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-b">B+</span><div><strong>80% to less than 85%</strong><small>3.30 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-b">B</span><div><strong>75% to less than 80%</strong><small>3.00 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-c">C+</span><div><strong>70% to less than 75%</strong><small>2.70 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-c">C</span><div><strong>65% to less than 70%</strong><small>2.40 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-d">D</span><div><strong>60% to less than 65%</strong><small>2.00 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-f">F</span><div><strong>Below 60%</strong><small>0.00 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-na">I/P/NC/W</span><div><strong>Official transcript notations</strong><small>Not zero-point GPA grades</small></div></div>
+          <div class="scale-reference">
+            <section class="scale-group">
+              <h3>Uploaded GPA key</h3>
+              <div class="scale-grid">
+                <div class="scale-item"><span class="scale-letter grade-a">A+</span><div><strong>95% and above</strong><small>4.00 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-a">A</span><div><strong>90% to less than 95%</strong><small>3.80 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-a">A−</span><div><strong>85% to less than 90%</strong><small>3.60 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-b">B+</span><div><strong>80% to less than 85%</strong><small>3.30 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-b">B</span><div><strong>75% to less than 80%</strong><small>3.00 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-c">C+</span><div><strong>70% to less than 75%</strong><small>2.70 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-c">C</span><div><strong>65% to less than 70%</strong><small>2.40 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-d">D</span><div><strong>60% to less than 65%</strong><small>2.00 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-f">F</span><div><strong>Below 60%</strong><small>0.00 grade points</small></div></div>
+              </div>
+            </section>
+            <section class="scale-group">
+              <h3>Sinai University 2023 regulations</h3>
+              <div class="scale-grid">
+                <div class="scale-item"><span class="scale-letter grade-a">A</span><div><strong>90% to 100%</strong><small>4.00 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-a">A−</span><div><strong>85% to less than 90%</strong><small>3.70 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-b">B+</span><div><strong>80% to less than 85%</strong><small>3.30 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-b">B</span><div><strong>75% to less than 80%</strong><small>3.00 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-b">B−</span><div><strong>72.5% to less than 75%</strong><small>2.70 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-c">C+</span><div><strong>70% to less than 72.5%</strong><small>2.30 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-c">C</span><div><strong>67.5% to less than 70%</strong><small>2.00 grade points*</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-c">C−</span><div><strong>65% to less than 67.5%</strong><small>1.70 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-d">D+</span><div><strong>62.5% to less than 65%</strong><small>1.30 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-d">D</span><div><strong>60% to less than 62.5%</strong><small>1.00 grade points</small></div></div>
+                <div class="scale-item"><span class="scale-letter grade-f">F</span><div><strong>Below 60%</strong><small>0.00 grade points</small></div></div>
+              </div>
+            </section>
           </div>
-          <p class="scale-disclaimer">I (Incomplete), P (Pass), NC (No Credit) and W (Withdrawal) are transcript notations, not zero-point letter grades. P earns degree credit but does not affect GPA; I, NC and W are excluded from GPA and earned-credit totals. F contributes zero points and remains in GPA hours, but is not an earned credit. Weighted percentage is displayed only when actual marks are entered for every GPA-counted course; it is never inferred from GPA. The programme requires 4 elective credits: choose two from the five marked elective options.</p>
+          <p class="scale-disclaimer">F and FW contribute zero points but remain in GPA hours. Ordinary W is excluded from CGPA; FW is a forced withdrawal counted as failure. I remains excluded until resolved. P earns degree credit without affecting GPA. A retake replaces the earlier attempt instead of adding a duplicate GPA hour; the best grade is kept, and second-or-later repeats of a failed course are capped at D. Weighted percentages require actual marks and are never inferred from GPA. The plan in this catalogue totals 189 credits; the 2023 regulation states 192 credits, so confirm which curriculum applies to your cohort.</p>
         </article>
       </section>
 
