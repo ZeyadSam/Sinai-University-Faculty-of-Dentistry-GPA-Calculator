@@ -3,27 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#102b46">
-  <meta name="description" content="A modern GPA calculator and academic progress tracker for Sinai University Faculty of Dentistry.">
-  <title>Sinai Dental | GPA Calculator</title>
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f4f7fb">
+  <meta name="description" content="A modern academic dashboard and GPA calculator for Sinai University Faculty of Dentistry.">
+  <meta name="author" content="Zeyad Samir">
+  <title>Sinai Dental · GPA Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%231c6d72'/%3E%3Cpath d='M21 15c-8 0-11 7-9 15l5 22c1 4 3 5 5 5 3 0 4-3 5-6l2-8c1-3 2-4 4-4s3 1 4 4l2 8c1 3 2 6 5 6 2 0 4-1 5-5l5-22c2-8-1-15-9-15-5 0-8 3-12 3s-7-3-12-3z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./ui-fixes.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
   <header class="topbar">
     <button class="icon-button mobile-menu" id="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
-      <span class="menu-icon" aria-hidden="true"></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
-    <a class="brand" href="#overview" aria-label="Sinai Dental home">
+
+    <a class="brand" href="#overview" aria-label="Sinai Dental GPA Studio home">
       <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 40 40" role="img"><path d="M20 4.5 34 12.5v15L20 35.5 6 27.5v-15L20 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15 12.5c-3.4 0-5.1 2.5-4.4 6.2l2.1 10.5c.3 1.5 1.1 2.2 2.1 2.2 1.2 0 1.7-1.3 2.1-2.8l1-3.7c.4-1.4.9-2.1 2.1-2.1s1.7.7 2.1 2.1l1 3.7c.4 1.5.9 2.8 2.1 2.8 1 0 1.8-.7 2.1-2.2l2.1-10.5c.7-3.7-1-6.2-4.4-6.2-2.1 0-3.3 1.3-5 1.3s-2.9-1.3-5-1.3Z" fill="currentColor" opacity=".9"/></svg>
+        <svg viewBox="0 0 40 40"><path d="M20 4.5 34 12.5v15L20 35.5 6 27.5v-15L20 4.5Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 12.5c-3.4 0-5.1 2.5-4.4 6.2l2.1 10.5c.3 1.5 1.1 2.2 2.1 2.2 1.2 0 1.7-1.3 2.1-2.8l1-3.7c.4-1.4.9-2.1 2.1-2.1s1.7.7 2.1 2.1l1 3.7c.4 1.5.9 2.8 2.1 2.8 1 0 1.8-.7 2.1-2.2l2.1-10.5c.7-3.7-1-6.2-4.4-6.2-2.1 0-3.3 1.3-5 1.3s-2.9-1.3-5-1.3Z" fill="currentColor"/></svg>
       </span>
-      <span class="brand-copy"><strong>Sinai Dental</strong><small>Academic dashboard</small></span>
+      <span class="brand-copy"><strong>GPA Studio</strong><small>Sinai Dental</small></span>
     </a>
+
     <div class="topbar-actions">
-      <span class="status-pill"><span class="status-dot"></span> Local workspace</span>
-      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Toggle theme">
+      <span class="save-indicator" id="storage-indicator"><span class="status-dot"></span> Saved on this device</span>
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Toggle appearance">
         <svg id="theme-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 15.1A8.5 8.5 0 0 1 8.9 3.7 8.5 8.5 0 1 0 20.3 15.1Z"/></svg>
       </button>
     </div>
@@ -31,97 +37,100 @@
 
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-label">WORKSPACE</div>
+      <div class="sidebar-section-label">WORKSPACE</div>
       <nav class="nav-list" aria-label="Main navigation">
-        <a class="nav-link active" href="#overview"><span class="nav-icon">⌂</span> Overview</a>
-        <a class="nav-link" href="#calculator"><span class="nav-icon">∑</span> GPA calculator</a>
-        <a class="nav-link" href="#progress"><span class="nav-icon">↗</span> Degree progress</a>
-        <a class="nav-link" href="#history"><span class="nav-icon">◷</span> Grade history</a>
-        <a class="nav-link" href="#grading-scale"><span class="nav-icon">▤</span> Grading scale</a>
+        <a class="nav-link active" href="#overview"><span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span></a>
+        <a class="nav-link" href="#calculator"><span class="nav-icon" aria-hidden="true">∑</span><span>GPA calculator</span></a>
+        <a class="nav-link" href="#progress"><span class="nav-icon" aria-hidden="true">↗</span><span>Degree progress</span></a>
+        <a class="nav-link" href="#history"><span class="nav-icon" aria-hidden="true">◷</span><span>Grade history</span></a>
+        <a class="nav-link" href="#grading-scale"><span class="nav-icon" aria-hidden="true">▤</span><span>Grading scale</span></a>
       </nav>
+
       <div class="sidebar-bottom">
         <div class="sidebar-note">
-          <span class="note-icon">✦</span>
-          <strong>Stay on track</strong>
-          <p>Keep your grades organised and understand what you need to reach your goal.</p>
+          <span class="note-icon" aria-hidden="true">✦</span>
+          <strong>Plan with clarity</strong>
+          <p>Keep your academic record organised and understand the grades you need next.</p>
         </div>
-        <div class="sidebar-credit">Built for Sinai University<br>Faculty of Dentistry</div>
+        <div class="sidebar-credit">SINAI UNIVERSITY<br>FACULTY OF DENTISTRY</div>
       </div>
     </aside>
 
-    <main class="main-content" id="overview">
-      <section class="welcome-row">
-        <div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> STUDENT PERFORMANCE</div>
-          <h1>Your academic journey,<br><span>made clearer.</span></h1>
-          <p class="hero-copy">Track your semester results, monitor your degree progress, and plan the GPA you want to achieve.</p>
+    <main class="main-content" id="main-content">
+      <section class="welcome-row" id="overview" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <div class="eyebrow"><span class="eyebrow-line"></span> SINAI UNIVERSITY · FACULTY OF DENTISTRY</div>
+          <h1 id="welcome-title">Your academic journey,<br><span>in clear focus.</span></h1>
+          <p class="hero-copy">A focused space to calculate your GPA, follow degree progress, and plan the results you want to achieve.</p>
+          <a class="hero-link" href="#calculator">Open GPA calculator <span aria-hidden="true">↗</span></a>
         </div>
-        <div class="hero-decoration" aria-hidden="true">
-          <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
-          <div class="hero-core"><span>SU</span><small>DENTAL</small></div>
-          <span class="orbit-dot dot-one"></span><span class="orbit-dot dot-two"></span>
+        <div class="hero-art" aria-hidden="true">
+          <div class="hero-ring ring-one"></div>
+          <div class="hero-ring ring-two"></div>
+          <div class="hero-orb"><span>SU</span><small>DENTAL</small></div>
+          <span class="hero-spark spark-one">✦</span><span class="hero-spark spark-two">✧</span>
         </div>
       </section>
 
-      <section class="metric-grid" aria-label="GPA overview">
-        <article class="metric-card metric-primary">
-          <div class="metric-top"><span>Semester GPA</span><span class="metric-symbol">∑</span></div>
-          <div class="metric-value" id="semester-gpa">0.00</div>
-          <div class="metric-foot"><span id="semester-credit-caption">0 graded credit hours</span></div>
+      <section class="metric-grid" aria-label="Academic overview">
+        <article class="metric-card metric-highlight">
+          <div class="metric-top"><span>Semester GPA</span><span class="metric-icon">∑</span></div>
+          <div class="metric-value" id="semester-gpa">—</div>
+          <div class="metric-foot" id="semester-credit-caption">0 graded credit hours</div>
         </article>
         <article class="metric-card">
-          <div class="metric-top"><span>Cumulative GPA</span><span class="metric-symbol">◈</span></div>
-          <div class="metric-value" id="cumulative-gpa">0.00</div>
+          <div class="metric-top"><span>Cumulative GPA</span><span class="metric-icon">◈</span></div>
+          <div class="metric-value" id="cumulative-gpa">—</div>
           <div class="metric-foot"><span class="grade-chip" id="cumulative-grade">N/A</span><span>Overall standing</span></div>
         </article>
         <article class="metric-card">
-          <div class="metric-top"><span>Equivalent percentage</span><span class="metric-symbol">％</span></div>
-          <div class="metric-value"><span id="percentage">0.00</span><small>%</small></div>
-          <div class="metric-foot">Estimated from the GPA scale</div>
+          <div class="metric-top"><span>Estimated percentage</span><span class="metric-icon">％</span></div>
+          <div class="metric-value"><span id="percentage">—</span><small>%</small></div>
+          <div class="metric-foot">Converted from the GPA bands</div>
         </article>
         <article class="metric-card">
-          <div class="metric-top"><span>Graded credits</span><span class="metric-symbol">◫</span></div>
+          <div class="metric-top"><span>Graded credits</span><span class="metric-icon">◫</span></div>
           <div class="metric-value" id="total-credit-hours">0</div>
-          <div class="metric-foot"><span id="selected-course-caption">0 courses selected</span></div>
+          <div class="metric-foot" id="selected-course-caption">0 courses selected</div>
         </article>
       </section>
 
-      <section class="section-block" id="calculator">
+      <section class="section-block" id="calculator" aria-labelledby="calculator-title">
         <div class="section-heading">
-          <div><div class="eyebrow">CALCULATOR</div><h2>Build your GPA picture</h2><p>Enter your previous record, choose courses, and select the grades you earned.</p></div>
-          <span class="section-index">01 / 04</span>
+          <div><div class="eyebrow">01 · CALCULATOR</div><h2 id="calculator-title">Build your GPA picture</h2><p>Enter your previous record, add courses, and select the grades you earned.</p></div>
+          <span class="section-index">GPA WORKSPACE</span>
         </div>
 
         <div class="settings-grid">
           <article class="surface-card settings-card">
-            <div class="card-heading"><div class="heading-icon blue">↗</div><div><h3>Previous academic record</h3><p>Your completed credits before this semester</p></div></div>
+            <div class="card-heading"><span class="heading-icon blue" aria-hidden="true">↗</span><div><h3>Previous academic record</h3><p>Completed credits before this semester</p></div></div>
             <div class="field-grid">
-              <label class="field-wrap"><span>Previous cumulative GPA</span><input id="previous-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="e.g. 3.25"></label>
-              <label class="field-wrap"><span>Previously completed credits</span><input id="previous-credits" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 68"></label>
+              <label class="field-wrap" for="previous-gpa"><span>Previous cumulative GPA</span><input id="previous-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="e.g. 3.25"></label>
+              <label class="field-wrap" for="previous-credits"><span>Previously completed credits</span><input id="previous-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 68"></label>
             </div>
-            <p class="field-hint">Leave both fields at zero when starting from your first semester.</p>
+            <p class="field-hint">Leave both fields empty when starting from your first semester.</p>
           </article>
+
           <article class="surface-card settings-card">
-            <div class="card-heading"><div class="heading-icon violet">◎</div><div><h3>Your graduation target</h3><p>Adjust the degree requirements and your goal</p></div></div>
+            <div class="card-heading"><span class="heading-icon violet" aria-hidden="true">◎</span><div><h3>Your graduation target</h3><p>Set the degree requirements and GPA you are aiming for</p></div></div>
             <div class="field-grid">
-              <label class="field-wrap"><span>Required degree credits</span><input id="degree-credits" type="number" inputmode="numeric" min="1" max="300" step="1" value="189"></label>
-              <label class="field-wrap"><span>Target cumulative GPA</span><input id="target-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" value="3.60"></label>
+              <label class="field-wrap" for="degree-credits"><span>Required degree credits</span><input id="degree-credits" type="number" inputmode="numeric" min="1" max="300" step="1" value="189"></label>
+              <label class="field-wrap" for="target-gpa"><span>Target cumulative GPA</span><input id="target-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" value="3.60"></label>
             </div>
-            <p class="field-hint">The target calculator updates automatically as you change your results.</p>
+            <p class="field-hint">Your required future average recalculates as you change your results.</p>
           </article>
         </div>
 
         <div class="planner-grid">
           <article class="surface-card catalog-card">
             <div class="card-heading catalog-heading">
-              <div><div class="eyebrow">COURSE CATALOG</div><h3>Add your courses</h3><p>Search by course title or code.</p></div>
+              <div><div class="eyebrow">COURSE CATALOGUE</div><h3>Add your courses</h3><p>Search by course title or course code.</p></div>
               <span class="count-badge" id="course-count">0 courses</span>
             </div>
             <div class="search-row">
-              <label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="course-search" type="search" placeholder="Search courses..." autocomplete="off"></label>
-              <select id="course-level" class="select-control" aria-label="Filter courses by level">
-                <option value="all">All levels</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option><option value="other">Other</option>
-              </select>
+              <label class="search-box" for="course-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="course-search" type="search" placeholder="Search courses..." autocomplete="off"></label>
+              <label class="visually-hidden" for="course-level">Filter courses by level</label>
+              <select id="course-level" class="select-control"><option value="all">All levels</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option><option value="other">Other</option></select>
             </div>
             <div class="course-list" id="course-list" aria-live="polite"></div>
             <div class="catalog-footer"><span><span class="mini-dot"></span> Course catalogue</span><span id="catalog-results">Showing available courses</span></div>
@@ -129,7 +138,7 @@
 
           <article class="surface-card selected-card">
             <div class="card-heading selected-heading">
-              <div><div class="eyebrow">YOUR SEMESTER</div><h3>Selected courses</h3><p>Assign a grade to each course to include it in your GPA.</p></div>
+              <div><div class="eyebrow">YOUR SEMESTER</div><h3>Selected courses</h3><p>Assign a grade to include each course in the calculation.</p></div>
               <span class="count-badge accent-badge" id="selected-count">0 selected</span>
             </div>
             <div id="selected-courses" class="selected-list" aria-live="polite"></div>
@@ -139,50 +148,54 @@
 
         <div class="action-row">
           <div class="action-group">
-            <button class="button button-primary" id="save-grades" type="button"><span>✓</span> Save results</button>
-            <button class="button button-secondary" id="load-grades" type="button"><span>↻</span> Load saved</button>
-            <button class="button button-secondary" id="export-csv" type="button"><span>⇩</span> Export CSV</button>
-            <button class="button button-secondary" id="print-report" type="button"><span>▤</span> Print / PDF</button>
+            <button class="button button-primary" id="save-grades" type="button"><span aria-hidden="true">✓</span> Save results</button>
+            <button class="button button-secondary" id="load-grades" type="button"><span aria-hidden="true">↻</span> Load saved</button>
+            <button class="button button-secondary" id="export-csv" type="button"><span aria-hidden="true">⇩</span> Export CSV</button>
+            <button class="button button-secondary" id="backup-json" type="button"><span aria-hidden="true">◫</span> Backup data</button>
+            <button class="button button-secondary" id="import-json-button" type="button"><span aria-hidden="true">⇧</span> Import backup</button>
+            <input class="visually-hidden" id="import-json" type="file" accept="application/json,.json">
+            <button class="button button-secondary" id="print-report" type="button"><span aria-hidden="true">▤</span> Print / PDF</button>
           </div>
           <button class="button button-danger-ghost" id="reset" type="button">Reset calculator</button>
         </div>
       </section>
 
-      <section class="section-block" id="progress">
+      <section class="section-block" id="progress" aria-labelledby="progress-title">
         <div class="section-heading">
-          <div><div class="eyebrow">PLANNING</div><h2>Degree progress & target planner</h2><p>See how far you have come and what average you need from here.</p></div>
-          <span class="section-index">02 / 04</span>
+          <div><div class="eyebrow">02 · PLANNING</div><h2 id="progress-title">Degree progress & target planner</h2><p>See how much of your programme is complete and the average you need next.</p></div>
+          <span class="section-index">YOUR NEXT MILESTONE</span>
         </div>
         <div class="progress-grid">
           <article class="surface-card degree-card">
-            <div class="card-heading"><div class="heading-icon green">◉</div><div><h3>Degree completion</h3><p>Credits with a recorded grade</p></div></div>
+            <div class="card-heading"><span class="heading-icon green" aria-hidden="true">◉</span><div><h3>Degree completion</h3><p>Credits with a recorded grade</p></div></div>
             <div class="progress-numbers"><strong id="completed-credits">0</strong><span>of <b id="degree-credit-label">189</b> credits</span><strong class="progress-percent" id="progress-percent">0%</strong></div>
-            <div class="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
+            <div class="progress-track" role="progressbar" aria-label="Degree completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
             <div class="progress-foot"><span id="remaining-credits">189</span> credit hours remaining</div>
           </article>
           <article class="surface-card target-card">
-            <div class="card-heading"><div class="heading-icon amber">✧</div><div><h3>What do you need?</h3><p>Average GPA needed across your remaining credits</p></div></div>
+            <div class="card-heading"><span class="heading-icon amber" aria-hidden="true">✧</span><div><h3>What do you need?</h3><p>Average GPA required across your remaining credits</p></div></div>
             <div class="target-number" id="required-gpa">—</div>
-            <div class="target-status" id="target-status" role="status">Enter your previous GPA and credits to begin.</div>
+            <div class="target-status" id="target-status" role="status">Enter your academic record to calculate a target.</div>
             <div class="target-foot">Goal: <strong id="target-label">3.60 / 4.00</strong></div>
           </article>
         </div>
       </section>
 
-      <section class="section-block" id="history">
+      <section class="section-block" id="history" aria-labelledby="history-title">
         <div class="section-heading">
-          <div><div class="eyebrow">YOUR RECORD</div><h2>Grade history</h2><p>Saved snapshots of your semester calculations on this device.</p></div>
-          <div class="heading-actions"><span class="section-index">03 / 04</span><button class="text-button" id="clear-history" type="button">Clear history</button></div>
+          <div><div class="eyebrow">03 · YOUR RECORD</div><h2 id="history-title">Grade history</h2><p>Saved snapshots of your semester calculations on this device.</p></div>
+          <div class="heading-actions"><span class="section-index">RECENT RESULTS</span><button class="text-button" id="clear-history" type="button">Clear history</button></div>
         </div>
         <article class="surface-card history-card">
+          <div class="history-trend" id="history-trend" aria-label="Saved cumulative GPA trend"></div>
           <div class="table-wrap" id="grade-history"></div>
         </article>
       </section>
 
-      <section class="section-block" id="grading-scale">
+      <section class="section-block" id="grading-scale" aria-labelledby="scale-title">
         <div class="section-heading">
-          <div><div class="eyebrow">REFERENCE</div><h2>Grading scale</h2><p>Grade points and percentage bands used in this calculator.</p></div>
-          <span class="section-index">04 / 04</span>
+          <div><div class="eyebrow">04 · REFERENCE</div><h2 id="scale-title">Grading scale</h2><p>Grade points and percentage bands used in this calculator.</p></div>
+          <span class="section-index">4.00 GPA SCALE</span>
         </div>
         <article class="surface-card scale-card">
           <div class="scale-grid">
