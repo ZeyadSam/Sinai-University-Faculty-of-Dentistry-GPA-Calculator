@@ -153,8 +153,8 @@ export function gradeFromMark(mark, scaleId = DEFAULT_GRADE_SCALE) {
 export function gradeFromGpa(gpa, scaleId = DEFAULT_GRADE_SCALE) {
   if (!Number.isFinite(gpa)) return "N/A";
   const scale = GRADING_SCALES[scaleId] || GRADING_SCALES[DEFAULT_GRADE_SCALE];
-  return Object.entries(scale.gradePoints)
-    .filter(([grade]) => grade !== "F")
+  const grade = Object.entries(scale.gradePoints)
+    .filter(([letter]) => letter !== "F")
     .sort((a, b) => b[1] - a[1])
     .find(([, points]) => gpa >= points)?.[0] || "F";
   return grade === "A-" ? "A−" : grade;
@@ -360,11 +360,11 @@ export function calculateAcademicMetrics({
       targetMessage = "The required degree credits are complete, but the target GPA has not been reached.";
       targetTone = "bad";
     }
-  } else if (futureGpaHours === 0) {
-    targetMessage = "All remaining degree credits are tied to previously attempted failures. Review the retake plan before relying on a future-average estimate.";
-    targetTone = "warning";
   } else {
-    const needed = (safeTargetGpa * totalFutureGpaHours - cumulativePoints) / futureGpaHours;
+    // Repeated failed courses already occupy GPA hours, but their replacement
+    // grades still contribute new grade points. Therefore divide the required
+    // future points by all remaining degree credits, not only net-new GPA hours.
+    const needed = (safeTargetGpa * totalFutureGpaHours - cumulativePoints) / remainingDegreeCredits;
     if (needed > 4 + 1e-10) {
       targetMessage = "This target is mathematically unattainable with a maximum future GPA of 4.00.";
       targetTone = "bad";
