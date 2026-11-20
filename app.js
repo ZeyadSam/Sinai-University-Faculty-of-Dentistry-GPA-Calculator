@@ -41,19 +41,8 @@ const elements = {
   requiredGpa: $("#required-gpa"),
   targetStatus: $("#target-status"),
   targetLabel: $("#target-label"),
-  history: $("#grade-history"),
-  historyTrend: $("#history-trend"),
-  toast: $("#toast"),
-  storageIndicator: $("#storage-indicator"),
-  themeToggle: $("#theme-toggle"),
-  themeIcon: $("#theme-icon"),
-  sidebar: $("#sidebar"),
-  navToggle: $("#nav-toggle"),
-  detailsDialog: $("#details-dialog"),
-  dialogTitle: $("#dialog-title"),
-  dialogBody: $("#dialog-body"),
-  importInput: $("#import-json")
-};
+  toast: $("#toast")
+};;
 
 let selectedCourses = [];
 let savedGrades = readStorage(STORAGE_KEYS.savedGrades, {});
@@ -195,7 +184,7 @@ function renderCourses() {
 
   elements.courseList.replaceChildren();
   elements.courseCount.textContent = `${courseCatalog.length} courses`;
-  elements.catalogResults.textContent = `Showing ${available.length} available`;
+  elements.catalogResults.textContent = `${available.length} courses available`;
 
   if (!available.length) {
     const empty = document.createElement("div");
@@ -508,7 +497,7 @@ function loadSavedGrades() {
 }
 
 function resetCalculator() {
-  if (!window.confirm("Reset the selected courses and previous academic record? Saved history will remain unchanged.")) return;
+  if (!window.confirm("Clear the courses and academic figures in this calculator?")) return;
   selectedCourses = [];
   elements.previousGpa.value = "";
   elements.previousCredits.value = "";
@@ -521,7 +510,7 @@ function resetCalculator() {
   renderSelectedCourses();
   updateDashboard();
   saveDraft();
-  showToast("Calculator reset. Your saved history remains available.");
+  showToast("Calculator cleared.");
 }
 
 function csvCell(value) {
@@ -962,27 +951,38 @@ function setUpNavigation() {
 
 function bindEvents() {
   elements.search.addEventListener("input", renderCourses);
-  elements.level.addEventListener("change", renderCourses);
+
   elements.courseList.addEventListener("click", event => {
     const button = event.target.closest("[data-add-code]");
     if (button) addCourse(button.dataset.addCode);
   });
+
   elements.selectedCourses.addEventListener("change", event => {
-    const select = event.target.closest("[data-grade-code]");
-    if (select) updateGrade(select.dataset.gradeCode, select.value);
-    const markInput = event.target.closest("[data-mark-code]");
-    if (markInput) updateMark(markInput.dataset.markCode, markInput.value);
+    const grade = event.target.closest("[data-grade-code]");
+    if (grade) updateGrade(grade.dataset.gradeCode, grade.value);
+
+    const mark = event.target.closest("[data-mark-code]");
+    if (mark) updateMark(mark.dataset.markCode, mark.value);
+
     const priorGrade = event.target.closest("[data-prior-grade-code]");
     if (priorGrade) updatePriorGrade(priorGrade.dataset.priorGradeCode, priorGrade.value);
+
     const repeatNumber = event.target.closest("[data-repeat-number-code]");
     if (repeatNumber) updateRepeatNumber(repeatNumber.dataset.repeatNumberCode, repeatNumber.value);
   });
+
   elements.selectedCourses.addEventListener("click", event => {
     const button = event.target.closest("[data-remove-code]");
     if (button) removeCourse(button.dataset.removeCode);
   });
 
-  [elements.previousGpa, elements.previousCredits, elements.previousEarnedCredits, elements.previousPercentage, elements.degreeCredits, elements.targetGpa].forEach(input => {
+  [
+    elements.previousGpa,
+    elements.previousCredits,
+    elements.previousEarnedCredits,
+    elements.degreeCredits,
+    elements.targetGpa
+  ].forEach(input => {
     input.addEventListener("input", () => {
       updateDashboard();
       saveDraft();
@@ -993,47 +993,17 @@ function bindEvents() {
     });
   });
 
-  elements.gradeScale.addEventListener("change", changeGradingScale);
-  $("#save-grades").addEventListener("click", saveGrades);
-  $("#load-grades").addEventListener("click", loadSavedGrades);
-  $("#export-csv").addEventListener("click", exportCsv);
-  $("#backup-json").addEventListener("click", exportBackup);
-  $("#import-json-button").addEventListener("click", () => elements.importInput.click());
-  elements.importInput.addEventListener("change", event => importBackup(event.target.files?.[0]));
-  $("#print-report").addEventListener("click", () => window.print());
   $("#reset").addEventListener("click", resetCalculator);
-  $("#clear-history").addEventListener("click", clearHistory);
-  $("#dialog-close").addEventListener("click", () => elements.detailsDialog.close());
-  $("#dialog-done").addEventListener("click", () => elements.detailsDialog.close());
-  elements.history.addEventListener("click", event => {
-    const button = event.target.closest("[data-history-index]");
-    if (button) openHistoryDetails(Number(button.dataset.historyIndex));
-  });
-  elements.themeToggle.addEventListener("click", () => {
-    setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
-  });
 }
-
 function initialize() {
   if (Object.values(elements).some(element => !element)) {
-    console.error("GPA Studio could not initialize because a required UI element is missing.");
+    console.error("The GPA calculator could not start because a required field is missing.");
     return;
   }
-  const theme = readTheme();
-  document.documentElement.dataset.theme = theme;
-  const isDark = theme === "dark";
-  elements.themeToggle.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
-  elements.themeToggle.setAttribute("aria-pressed", String(isDark));
-  elements.themeIcon.innerHTML = isDark
-    ? '<path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42m-9.88 9.88-1.42 1.42"/><circle cx="12" cy="12" r="4"/>'
-    : '<path d="M20.3 15.1A8.5 8.5 0 0 1 8.9 3.7 8.5 8.5 0 1 0 20.3 15.1Z"/>';
   restoreDraft();
   bindEvents();
-  setUpNavigation();
   renderCourses();
   renderSelectedCourses();
-  renderHistory();
   updateDashboard();
 }
-
 initialize();
