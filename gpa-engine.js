@@ -254,6 +254,12 @@ export function calculateAcademicMetrics({
     const oldFailed = ["F", "FW"].includes(prior);
     const newFailed = ["F", "FW"].includes(grade);
 
+    // A W, I or NC outcome on the retake cannot erase the earlier F/FW.
+    if (oldFailed && !newGpaCounted && grade !== "P") {
+      repeatNotices.push(item.course.code + ": the previous failure remains in CGPA because the retake has no final grade.");
+      continue;
+    }
+
     if (!oldFailed && item.repeatNumber >= 2) {
       repeatValid = false;
       repeatNotices.push(item.course.code + ": improvement of a passed course is allowed only once.");
