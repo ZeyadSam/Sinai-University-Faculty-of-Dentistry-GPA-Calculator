@@ -229,9 +229,20 @@ export function calculateAcademicMetrics({
   let hasRepeatedCourse = false;
   const repeatNotices = [];
   let repeatValid = true;
+  const improvementCourses = validCourses.filter(item => {
+    const priorPoints = gradePointsFor(item.priorGrade, scaleId);
+    return Boolean(item.priorGrade) && priorPoints !== null && priorPoints > 0;
+  });
+  if (improvementCourses.length > 3) {
+    repeatValid = false;
+    repeatNotices.push("The 2023 regulations limit grade improvement to three courses.");
+  }
 
   for (const item of validCourses) {
     const grade = item.effectiveGrade;
+    if (item.priorGrade && item.repeatNumber >= 2 && ["F", "FW"].includes(item.priorGrade) && grade === "D") {
+      repeatNotices.push(item.course.code + ": the second-or-later repeat is capped at D.");
+    }
     const prior = item.priorGrade;
     const credit = item.credits;
     const newGpaCounted = isGpaCountedGrade(grade, scaleId);
