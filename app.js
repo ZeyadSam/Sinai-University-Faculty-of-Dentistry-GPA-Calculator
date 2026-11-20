@@ -1,5 +1,5 @@
 import { courseCatalog, ELECTIVE_COURSE_LIMIT } from "./courses.js";
-import { calculateAcademicMetrics, GRADE_OPTIONS, GRADE_POINTS, SPECIAL_GRADES, gradeFromGpa, gradeFromMark, normalizeGrade } from "./gpa-engine.js";
+import { calculateAcademicMetrics, GRADING_SCALES, DEFAULT_GRADE_SCALE, SPECIAL_GRADES, gradeFromGpa, gradeFromMark, gradePointsFor, getGradeOptionsForScale, normalizeGrade, isValidGrade as engineIsValidGrade } from "./gpa-engine.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const STORAGE_KEYS = Object.freeze({
@@ -14,6 +14,7 @@ const elements = {
   previousCredits: $("#previous-credits"),
   previousEarnedCredits: $("#previous-earned-credits"),
   previousPercentage: $("#previous-percentage"),
+  gradeScale: $("#grade-scale"),
   degreeCredits: $("#degree-credits"),
   targetGpa: $("#target-gpa"),
   search: $("#course-search"),
@@ -96,11 +97,15 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => elements.toast.classList.remove("show"), 2800);
 }
 
-function isValidGrade(grade) {
-  return GRADE_OPTIONS.includes(normalizeGrade(grade));
+function getScaleId() {
+  return elements.gradeScale && GRADING_SCALES[elements.gradeScale.value] ? elements.gradeScale.value : DEFAULT_GRADE_SCALE;
 }
 
-function normalizeCourseSelections(items) {
+function isValidGrade(grade, scaleId = getScaleId()) {
+  return engineIsValidGrade(grade, scaleId);
+}
+
+function normalizeCourseSelections(items, scaleId = getScaleId()) {
   const seen = new Set();
   let electiveCount = 0;
   return (Array.isArray(items) ? items : []).map(saved => {
@@ -111,8 +116,15 @@ function normalizeCourseSelections(items) {
     if (course.elective) electiveCount += 1;
     const mark = saved.mark === "" || saved.mark === null || saved.mark === undefined ? null : Number(saved.mark);
     const markValid = Number.isFinite(mark) && mark >= 0 && mark <= 100;
-    const grade = markValid ? gradeFromMark(mark) : normalizeGrade(saved.grade);
-    return { course, grade: isValidGrade(grade) ? grade : "", mark: markValid ? mark : null };
+    const grade = markValid ? gradeFromMark(mark, scaleId) : normalizeGrade(saved.grade);
+    const priorGrade = normalizeGrade(saved.priorGrade);
+    return {
+      course,
+      grade: isValidGrade(grade, scaleId) ? grade : "",
+      mark: markValid ? mark : null,
+      priorGrade: priorGrade && isValidGrade(priorGrade, scaleId) ? priorGrade : "",
+      repeatNumber: Number(saved.repeatNumber) >= 2 ? 2 : 1
+    };
   }).filter(Boolean);
 }
 
@@ -129,6 +141,7 @@ function getMetrics() {
     previousPercentage: elements.previousPercentage.value,
     degreeCredits: elements.degreeCredits.value,
     targetGpa: elements.targetGpa.value,
+    gradingScale: getScaleId(),
     courses: selectedCourses
   });
 }
@@ -151,7 +164,7 @@ function updateDashboard() {
   elements.semesterGpa.textContent = hasCurrentGrades ? result.semesterGpa.toFixed(2) : "—";
   elements.semesterCreditCaption.textContent = result.semesterGpaHours + " GPA-counted hours";
   elements.cumulativeGpa.textContent = hasCumulativeRecord ? result.cumulativeGpa.toFixed(2) : "—";
-  elements.cumulativeGrade.textContent = hasCumulativeRecord ? gradeFromGpa(result.cumulativeGpa) : "N/A";
+  elements.cumulativeGrade.textContent = hasCumulativeRecord ? gradeFromGpa(result.cumulativeGpa, result.gradingScale) : "N/A";
   elements.percentage.textContent = result.cumulativeWeightedPercentage === null ? "—" : result.cumulativeWeightedPercentage.toFixed(2);
   elements.totalCreditHours.textContent = String(result.semesterGpaHours);
   elements.completedCredits.textContent = String(result.cumulativeEarnedHours);
@@ -162,7 +175,7 @@ function updateDashboard() {
   elements.remainingCredits.textContent = String(result.remainingDegreeCredits);
   elements.targetLabel.textContent = `${result.targetGpa.toFixed(2)} / 4.00`;
   elements.requiredGpa.textContent = result.requiredGpa === null ? "—" : result.requiredGpa.toFixed(2);
-  elements.targetStatus.textContent = result.targetMessage;
+  elements.targetStatus.textContent = [result.targetMessage, ...(result.repeatNotices || [])].filter(Boolean).join(" ");
   elements.targetStatus.className = `target-status${result.targetTone ? ` ${result.targetTone}` : ""}`;
   elements.selectedCourseCaption.textContent = `${selectedCourses.length} courses selected · ${selectedCourses.filter(item => item.course.elective).length}/${ELECTIVE_COURSE_LIMIT} electives`;
   return result;
@@ -219,6 +232,8 @@ function renderCourses() {
 }
 
 function renderSelectedCourses() {
+  const scaleId = getScaleId();
+  const scaleOptions = getGradeOptionsForScale(scaleId);
   elements.selectedCourses.replaceChildren();
   elements.selectedCount.textContent = `${selectedCourses.length} selected`;
   elements.selectedCourseCaption.textContent = `${selectedCourses.length} courses selected · ${selectedCourses.filter(item => item.course.elective).length}/${ELECTIVE_COURSE_LIMIT} electives`;
@@ -256,17 +271,16 @@ function renderSelectedCourses() {
     const select = document.createElement("select");
     select.className = "grade-select";
     select.dataset.gradeCode = item.course.code;
-    select.setAttribute("aria-label", `Grade for ${item.course.title}`);
+    select.setAttribute("aria-label", `Current grade for ${item.course.title}`);
     const placeholder = document.createElement("option");
     placeholder.value = "";
     placeholder.textContent = "Select grade";
     select.append(placeholder);
-    for (const grade of GRADE_OPTIONS) {
+    for (const grade of scaleOptions) {
       const option = document.createElement("option");
       option.value = grade;
-      option.textContent = Object.hasOwn(GRADE_POINTS, grade)
-        ? grade + " · " + GRADE_POINTS[grade].toFixed(1)
-        : grade + " · " + SPECIAL_GRADES[grade];
+      const points = gradePointsFor(grade, scaleId);
+      option.textContent = points === null ? `${grade} · ${SPECIAL_GRADES[grade]}` : `${grade} · ${points.toFixed(1)}`;
       select.append(option);
     }
     select.value = item.grade || "";
@@ -281,7 +295,7 @@ function renderSelectedCourses() {
     markInput.placeholder = "Mark %";
     markInput.value = item.mark ?? "";
     markInput.dataset.markCode = item.course.code;
-    markInput.setAttribute("aria-label", "Actual percentage mark for " + item.course.title);
+    markInput.setAttribute("aria-label", `Actual mark for ${item.course.title}`);
     const gradeControls = document.createElement("div");
     gradeControls.className = "grade-controls";
     gradeControls.append(select, markInput);
@@ -292,9 +306,49 @@ function renderSelectedCourses() {
     remove.textContent = "×";
     remove.dataset.removeCode = item.course.code;
     remove.setAttribute("aria-label", `Remove ${item.course.title}`);
-    row.append(info, gradeControls, remove);
+
+    const repeatControls = document.createElement("div");
+    repeatControls.className = "repeat-controls";
+    const priorWrap = document.createElement("label");
+    priorWrap.className = "repeat-field";
+    const priorLabel = document.createElement("span");
+    priorLabel.textContent = "Previous transcript grade · optional";
+    const priorSelect = document.createElement("select");
+    priorSelect.className = "prior-grade-select";
+    priorSelect.dataset.priorGradeCode = item.course.code;
+    priorSelect.setAttribute("aria-label", `Previous transcript grade for ${item.course.title}`);
+    const priorPlaceholder = document.createElement("option");
+    priorPlaceholder.value = "";
+    priorPlaceholder.textContent = "New course / not repeated";
+    priorSelect.append(priorPlaceholder);
+    for (const grade of scaleOptions) {
+      const option = document.createElement("option");
+      option.value = grade;
+      const points = gradePointsFor(grade, scaleId);
+      option.textContent = points === null ? `${grade} · ${SPECIAL_GRADES[grade]}` : `${grade} · ${points.toFixed(1)}`;
+      priorSelect.append(option);
+    }
+    priorSelect.value = item.priorGrade || "";
+    priorWrap.append(priorLabel, priorSelect);
+
+    const repeatWrap = document.createElement("label");
+    repeatWrap.className = "repeat-field";
+    const repeatLabel = document.createElement("span");
+    repeatLabel.textContent = "Repeat number";
+    const repeatSelect = document.createElement("select");
+    repeatSelect.className = "repeat-number-select";
+    repeatSelect.dataset.repeatNumberCode = item.course.code;
+    repeatSelect.setAttribute("aria-label", `Repeat number for ${item.course.title}`);
+    repeatSelect.innerHTML = '<option value="1">First repeat</option><option value="2">Second or later repeat</option>';
+    repeatSelect.value = String(item.repeatNumber || 1);
+    repeatSelect.disabled = !item.priorGrade;
+    repeatWrap.append(repeatLabel, repeatSelect);
+    repeatControls.append(priorWrap, repeatWrap);
+
+    row.append(info, gradeControls, remove, repeatControls);
     fragment.append(row);
-  }  elements.selectedCourses.append(fragment);
+  }
+  elements.selectedCourses.append(fragment);
 }
 
 function saveDraft() {
