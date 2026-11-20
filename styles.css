@@ -313,7 +313,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .catalog-footer > span:first-child { display: inline-flex; align-items: center; gap: 7px; }
 .catalog-footer .mini-dot { width: 6px; height: 6px; }
 .selected-list { min-height: 0; max-height: 391px; flex: 1; overflow-y: auto; padding-right: 3px; scrollbar-color: var(--line-strong) transparent; scrollbar-width: thin; }
-.selected-item { min-height: 62px; padding: 9px 2px; display: grid; grid-template-columns: minmax(0, 1fr) 112px 28px; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+.selected-item { min-height: 62px; padding: 9px 2px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 192px) 28px; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+.grade-controls { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 70px; gap: 5px; }
+.mark-input { width: 100%; min-width: 0; height: 35px; padding: 0 6px; color: var(--text); background: var(--surface-soft); border: 1px solid var(--line-strong); border-radius: 9px; font: inherit; font-size: 10px; font-variant-numeric: tabular-nums; }
+.mark-input:focus { outline: none; border-color: var(--teal); box-shadow: var(--focus); }
+.mark-input::placeholder { color: var(--muted); font-size: 9px; }
 .selected-item:last-child { border-bottom: 0; }
 .grade-select { height: 35px; padding: 0 7px; font-size: 10px; }
 .remove-button { width: 28px; height: 28px; display: grid; place-items: center; color: #c2766e; background: var(--red-soft); border: 0; border-radius: 8px; font-size: 19px; line-height: 1; }
@@ -465,7 +469,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .search-box { padding: 0 8px; }
   .search-box input { font-size: 10px; }
   .select-control { padding: 0 5px; font-size: 9px; }
-  .selected-item { grid-template-columns: minmax(0, 1fr) 99px 26px; gap: 5px; }
+  .selected-item { grid-template-columns: minmax(0, 1fr) minmax(0, 160px) 26px; gap: 5px; }
+  .grade-controls { grid-template-columns: minmax(0, 1fr) 62px; gap: 4px; }
+  .mark-input { height: 35px; font-size: 9px; }
   .selected-title, .course-item-title { font-size: 10px; }
   .action-row { align-items: stretch; }
   .action-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
