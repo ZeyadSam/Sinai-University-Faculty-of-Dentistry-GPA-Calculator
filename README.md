@@ -20,7 +20,8 @@ Then open the local URL printed by the server.
 - Exact weighted percentages only when actual course marks are entered; no guessed GPA-to-percentage conversion.
 - Previous GPA hours, earned credits and optional previous actual weighted mark.
 - Target-GPA planning that accounts for the current GPA-hour denominator and remaining earned degree credits.
-- Degree-credit progress tracking and remaining-average estimate.
+- Degree-credit progress tracking based on earned hours, plus a remaining-average estimate.
+- Five elective options with a limit of two selected options (4 elective credits), matching the supplied study plan.
 - Searchable course catalogue and grade history.
 - CSV export, JSON backup/restore, and print-to-PDF.
 - Light/dark theme and responsive layouts.
@@ -28,7 +29,7 @@ Then open the local URL printed by the server.
 
 ## Data and compatibility
 
-The existing localStorage keys (`savedGrades`, `gradeHistory`, `gpaCalculatorData`, and `theme`) are retained. Legacy `CN` entries are normalized to `NC`. Older saves had one previous-credit field; it is migrated as both GPA hours and earned credits until the student corrects it. Historical GPA snapshots are recalculated under the corrected rules. Percentages from earlier releases are not treated as verified marks.
+The existing localStorage keys (`savedGrades`, `gradeHistory`, `gpaCalculatorData`, and `theme`) are retained. Legacy `CN` entries are normalized to `NC`. Older saves had one previous-credit field; it is migrated as both GPA hours and earned credits until the student corrects it. Historical GPA snapshots are recalculated under the corrected rules. Percentages from earlier releases are not treated as verified marks. The elective catalogue includes all five approved options, but only two may be selected because the study plan requires four elective credit hours.
 
 ## Quality checks
 
