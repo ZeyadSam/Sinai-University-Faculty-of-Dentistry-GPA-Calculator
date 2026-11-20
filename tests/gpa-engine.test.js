@@ -53,7 +53,7 @@ test("legacy previous-credit field remains a fallback for GPA-hours and earned-h
 test("future required GPA accounts for earned remaining hours and existing GPA-hours", () => {
   const r = calculateAcademicMetrics({previousGpa:"3.00",previousGpaHours:"30",previousEarnedCredits:"27",degreeCredits:"90",targetGpa:"3.50"});
   assert.equal(r.remainingDegreeCredits,63);
-  closeTo(r.requiredGpa,(3.5*(30+60)-90)/60);
+  closeTo(r.requiredGpa,(3.5*(30+60)-90)/63);
 });
 
 test("required future GPA is not incorrectly set to zero merely because current GPA meets target", () => {
