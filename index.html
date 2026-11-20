@@ -84,12 +84,12 @@
           <div class="metric-foot"><span class="grade-chip" id="cumulative-grade">N/A</span><span>Overall standing</span></div>
         </article>
         <article class="metric-card">
-          <div class="metric-top"><span>Estimated percentage</span><span class="metric-icon">％</span></div>
+          <div class="metric-top"><span>Actual weighted mark</span><span class="metric-icon">％</span></div>
           <div class="metric-value"><span id="percentage">—</span><small>%</small></div>
-          <div class="metric-foot">Converted from the GPA bands</div>
+          <div class="metric-foot">Only shown when every GPA course has an actual mark</div>
         </article>
         <article class="metric-card">
-          <div class="metric-top"><span>Graded credits</span><span class="metric-icon">◫</span></div>
+          <div class="metric-top"><span>GPA hours</span><span class="metric-icon">◫</span></div>
           <div class="metric-value" id="total-credit-hours">0</div>
           <div class="metric-foot" id="selected-course-caption">0 courses selected</div>
         </article>
@@ -106,9 +106,11 @@
             <div class="card-heading"><span class="heading-icon blue" aria-hidden="true">↗</span><div><h3>Previous academic record</h3><p>Completed credits before this semester</p></div></div>
             <div class="field-grid">
               <label class="field-wrap" for="previous-gpa"><span>Previous cumulative GPA</span><input id="previous-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="e.g. 3.25"></label>
-              <label class="field-wrap" for="previous-credits"><span>Previously completed credits</span><input id="previous-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 68"></label>
+              <label class="field-wrap" for="previous-credits"><span>Previous GPA hours (attempted)</span><input id="previous-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 68"></label>
+              <label class="field-wrap" for="previous-earned-credits"><span>Previously earned credits</span><input id="previous-earned-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 65"></label>
+              <label class="field-wrap" for="previous-percentage"><span>Previous actual weighted mark (%) · optional</span><input id="previous-percentage" type="number" inputmode="decimal" min="0" max="100" step="0.01" placeholder="Actual transcript average"></label>
             </div>
-            <p class="field-hint">Leave both fields empty when starting from your first semester.</p>
+            <p class="field-hint">GPA hours and earned credits may differ after failures, withdrawals or pass-only courses. If all previous GPA hours were earned, the earned-credit value may match them. Enter your previous actual weighted mark only when known.</p>
           </article>
 
           <article class="surface-card settings-card">
@@ -138,7 +140,7 @@
 
           <article class="surface-card selected-card">
             <div class="card-heading selected-heading">
-              <div><div class="eyebrow">YOUR SEMESTER</div><h3>Selected courses</h3><p>Assign a grade to include each course in the calculation.</p></div>
+              <div><div class="eyebrow">YOUR SEMESTER</div><h3>Selected courses</h3><p>Choose a transcript grade or enter the actual mark; marks map automatically to the official grade.</p></div>
               <span class="count-badge accent-badge" id="selected-count">0 selected</span>
             </div>
             <div id="selected-courses" class="selected-list" aria-live="polite"></div>
@@ -208,9 +210,9 @@
             <div class="scale-item"><span class="scale-letter grade-c">C</span><div><strong>65% – 69%</strong><small>2.40 grade points</small></div></div>
             <div class="scale-item"><span class="scale-letter grade-d">D</span><div><strong>60% – 64%</strong><small>2.00 grade points</small></div></div>
             <div class="scale-item"><span class="scale-letter grade-f">F</span><div><strong>Below 60%</strong><small>0.00 grade points</small></div></div>
-            <div class="scale-item"><span class="scale-letter grade-na">W/I/CN</span><div><strong>Special grades</strong><small>0.00 grade points in this model</small></div></div>
+            <div class="scale-item"><span class="scale-letter grade-na">I/P/NC/W</span><div><strong>Official transcript notations</strong><small>Not zero-point GPA grades</small></div></div>
           </div>
-          <p class="scale-disclaimer">The percentage shown above is an estimate derived from the GPA bands, not an official transcript conversion. Confirm official academic rules with the university.</p>
+          <p class="scale-disclaimer">I (Incomplete), P (Pass), NC (No Credit) and W (Withdrawal) are transcript notations, not zero-point letter grades. P earns degree credit but does not affect GPA; I, NC and W are excluded from GPA and earned-credit totals. F contributes zero points and remains in GPA hours, but is not an earned credit. Weighted percentage is displayed only when actual marks are entered for every GPA-counted course; it is never inferred from GPA.</p>
         </article>
       </section>
 
