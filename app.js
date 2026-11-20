@@ -297,8 +297,43 @@ function saveDraft() {
 
 function sanitizeHistory(value) {
   if (!Array.isArray(value)) return [];
-  return value.filter(entry => entry && typeof entry === "object" && Array.isArray(entry.courses))
-    .map(entry => ({ ...entry, weightedPercentage: Number.isFinite(Number(entry.weightedPercentage)) ? Number(entry.weightedPercentage) : null }))
+  return value
+    .filter(entry => entry && typeof entry === "object" && Array.isArray(entry.courses))
+    .map(entry => {
+      const previousGpaHours = entry.previousGpaHours ?? entry.previousCredits ?? "";
+      const previousEarnedCredits = entry.previousEarnedCredits ?? entry.previousCredits ?? "";
+      const courses = entry.courses
+        .filter(item => item && item.course && isValidGrade(item.grade))
+        .map(item => {
+          const mark = item.mark === "" || item.mark === null || item.mark === undefined ? null : Number(item.mark);
+          const validMark = Number.isFinite(mark) && mark >= 0 && mark <= 100;
+          const grade = validMark ? gradeFromMark(mark) : normalizeGrade(item.grade);
+          return {
+            course: item.course,
+            grade: isValidGrade(grade) ? grade : "",
+            mark: validMark ? mark : null
+          };
+        });
+      const metrics = calculateAcademicMetrics({
+        previousGpa: entry.previousGpa ?? "",
+        previousGpaHours,
+        previousEarnedCredits,
+        previousPercentage: entry.previousPercentage ?? "",
+        courses
+      });
+      return {
+        ...entry,
+        semesterGpa: metrics.semesterGpa?.toFixed(2) ?? "—",
+        cumulativeGpa: metrics.cumulativeGpa?.toFixed(2) ?? "—",
+        percentage: metrics.cumulativeWeightedPercentage?.toFixed(2) ?? null,
+        weightedPercentage: metrics.cumulativeWeightedPercentage?.toFixed(2) ?? null,
+        semesterWeightedPercentage: metrics.semesterWeightedPercentage?.toFixed(2) ?? null,
+        credits: metrics.semesterGpaHours,
+        gpaHours: metrics.semesterGpaHours,
+        earnedHours: metrics.semesterEarnedHours,
+        courses
+      };
+    })
     .slice(0, 20);
 }
 
@@ -333,6 +368,7 @@ function saveGrades() {
     previousGpa: result.previous.gpa,
     previousCredits: result.previous.gpaHours,
     previousEarnedCredits: result.previous.earnedHours,
+    previousPercentage: result.previous.weightedPercentage,
     courses: recorded.map(item => ({ course: { ...item.course }, grade: normalizeGrade(item.grade), mark: item.mark ?? null }))
   };
   gradeHistory = [snapshot, ...gradeHistory].slice(0, 20);
@@ -587,6 +623,7 @@ function renderHistoryTrend() {
   }
   const chronological = [...gradeHistory].slice(0, 6).reverse();
   chronological.forEach((entry, index) => {
+    if (entry.cumulativeGpa === null || entry.cumulativeGpa === undefined || entry.cumulativeGpa === "") return;
     const value = Number(entry.cumulativeGpa);
     if (!Number.isFinite(value)) return;
     const item = document.createElement("div");
