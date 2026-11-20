@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   GRADE_POINTS, calculateAcademicMetrics, gradeFromGpa, gradeFromMark, isValidGrade, normalizeGrade
 } from "../gpa-engine.js";
+import { courseCatalog, ELECTIVE_COURSE_LIMIT } from "../courses.js";
 
 const course = (credits, grade, mark = null) => ({ course: { credits }, grade, mark });
 const closeTo = (actual, expected, epsilon = 1e-10) => assert.ok(Math.abs(actual - expected) < epsilon, String(actual) + " != " + String(expected));
@@ -115,4 +116,28 @@ test("maps raw marks to official grade bands, including every boundary", () => {
 
 test("keeps overall grade labels aligned with the GPA key", () => {
   assert.equal(gradeFromGpa(4),"A+"); assert.equal(gradeFromGpa(3.8),"A"); assert.equal(gradeFromGpa(3.6),"A−"); assert.equal(gradeFromGpa(3.59),"B+"); assert.equal(gradeFromGpa(Number.NaN),"N/A");
+});
+
+test("study-plan mandatory courses total exactly 189 credits after corrections", () => {
+  const optionalAlternatives = new Set(["SSG E01", "SSG E03", "BAD E01"]);
+  const requiredPlanHours = courseCatalog
+    .filter(item => !optionalAlternatives.has(item.code))
+    .reduce((sum, item) => sum + item.credits, 0);
+  assert.equal(requiredPlanHours, 189);
+  assert.equal(ELECTIVE_COURSE_LIMIT, 2);
+  assert.equal(courseCatalog.filter(item => item.elective).length, 5);
+});
+
+test("Level 4 medical and surgical courses match the official 3-credit values", () => {
+  const expected = ["DEM 4108","DED 4101","DED 4102","DEM 4109","DEM 4208","DED 4201","DED 4202","DEM 4209"];
+  for (const code of expected) {
+    const item = courseCatalog.find(course => course.code === code);
+    assert.ok(item, "missing course " + code);
+    assert.equal(item.credits, 3, code);
+  }
+});
+
+test("course catalogue contains no duplicate course codes after normalization", () => {
+  const codes = courseCatalog.map(item => item.code);
+  assert.equal(new Set(codes).size, codes.length);
 });
