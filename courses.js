@@ -42,25 +42,25 @@ export const allCourses = [
   { code: "DEH 3203", title: "Oral Pathology (2)", credits: 3 },
   { code: "BAD E02", title: "Introduction to Business Administration", credits: 2 },
   { code: "DER 4102", title: "Technology of Endodontic (1)", credits: 2 },
-  { code: "DEM 4108", title: "Internal Medicine & Dermatology (1)", credits: 2 },
+  { code: "DEM 4108", title: "Internal Medicine & Dermatology (1)", credits: 3 },
   { code: "DER 4101", title: "Clinical Operative Dentistry (1)", credits: 2 },
   { code: "DEP 4101", title: "Clinical Removable Prosthodontics (1)", credits: 2 },
   { code: "DEP 4102", title: "Clinical Fixed Prosthodontics (1)", credits: 2 },
   { code: "DEO 4101", title: "Oral & Maxillofacial Surgery (1)", credits: 2 },
-  { code: "DED 4101", title: "Oral Medicine & Periodontics (1)", credits: 2 },
-  { code: "DED 4102", title: "Diagnostic Sciences & Oral Maxillofacial Radiology (1)", credits: 2 },
+  { code: "DED 4101", title: "Oral Medicine & Periodontics (1)", credits: 3 },
+  { code: "DED 4102", title: "Diagnostic Sciences & Oral Maxillofacial Radiology (1)", credits: 3 },
   { code: "DET 4101", title: "Orthodontics & Dentofacial Orthopedics (1)", credits: 2 },
-  { code: "DEM 4109", title: "General Surgery (1) ENT & Ophthalmology", credits: 2 },
+  { code: "DEM 4109", title: "General Surgery (1) ENT & Ophthalmology", credits: 3 },
   { code: "DER 4202", title: "Technology of Endodontic (2)", credits: 2 },
-  { code: "DEM 4208", title: "Internal Medicine & Dermatology (2)", credits: 2 },
+  { code: "DEM 4208", title: "Internal Medicine & Dermatology (2)", credits: 3 },
   { code: "DER 4201", title: "Clinical Operative Dentistry (2)", credits: 2 },
   { code: "DEP 4201", title: "Clinical Removable Prosthodontics (2)", credits: 2 },
   { code: "DEP 4202", title: "Clinical Fixed Prosthodontics (2)", credits: 2 },
   { code: "DEO 4201", title: "Oral & Maxillofacial Surgery (2)", credits: 2 },
-  { code: "DED 4201", title: "Oral Medicine & Periodontics (2)", credits: 2 },
-  { code: "DED 4202", title: "Diagnostic Sciences & Oral Maxillofacial Radiology (2)", credits: 2 },
+  { code: "DED 4201", title: "Oral Medicine & Periodontics (2)", credits: 3 },
+  { code: "DED 4202", title: "Diagnostic Sciences & Oral Maxillofacial Radiology (2)", credits: 3 },
   { code: "DET 4201", title: "Orthodontics & Dentofacial Orthopedics (2)", credits: 2 },
-  { code: "DEM 4209", title: "General Surgery (2) ENT & Ophthalmology", credits: 2 },
+  { code: "DEM 4209", title: "General Surgery (2) ENT & Ophthalmology", credits: 3 },
   { code: "DER 5101", title: "Clinical Operative Dentistry (3)", credits: 3 },
   { code: "DER 5102", title: "Clinical Endodontic (1)", credits: 2 },
   { code: "DEP 5101", title: "Clinical Removable Prosthodontics (3)", credits: 3 },
@@ -88,4 +88,12 @@ const uniqueCourses = new Map();
 for (const course of allCourses) {
   if (!uniqueCourses.has(course.code)) uniqueCourses.set(course.code, course);
 }
-export const courseCatalog = [...uniqueCourses.values()];
+const electiveCodes = new Set(["SSG E01", "SSG E02", "SSG E03", "BAD E01", "BAD E02"]);
+
+// Sinai's study plan requires 4 elective credit hours: two 2-credit courses
+// chosen from the five listed options. The alternatives are not five additional requirements.
+export const ELECTIVE_COURSE_LIMIT = 2;
+export const courseCatalog = [...uniqueCourses.values()].map(course => ({
+  ...course,
+  elective: electiveCodes.has(course.code)
+}));
