@@ -3,257 +3,161 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f4f7fb">
-  <meta name="description" content="A modern academic dashboard and GPA calculator for Sinai University Faculty of Dentistry.">
-  <meta name="author" content="Zeyad Samir">
-  <title>Sinai Dental · GPA Studio</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%231c6d72'/%3E%3Cpath d='M21 15c-8 0-11 7-9 15l5 22c1 4 3 5 5 5 3 0 4-3 5-6l2-8c1-3 2-4 4-4s3 1 4 4l2 8c1 3 2 6 5 6 2 0 4-1 5-5l5-22c2-8-1-15-9-15-5 0-8 3-12 3s-7-3-12-3z' fill='white'/%3E%3C/svg%3E">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f5f4ee">
+  <meta name="description" content="A simple academic GPA calculator for Sinai University Faculty of Dentistry.">
+  <title>Sinai Dental · GPA Calculator</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231c4d43'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-family='Georgia' font-size='25' fill='white'%3ESU%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to content</a>
+  <input id="grade-scale" type="hidden" value="uploadedKey">
+  <input id="previous-percentage" type="hidden" value="">
+  <input id="course-level" type="hidden" value="all">
 
-  <header class="topbar">
-    <button class="icon-button mobile-menu" id="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-    </button>
-
-    <a class="brand" href="#overview" aria-label="Sinai Dental GPA Studio home">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 40 40"><path d="M20 4.5 34 12.5v15L20 35.5 6 27.5v-15L20 4.5Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 12.5c-3.4 0-5.1 2.5-4.4 6.2l2.1 10.5c.3 1.5 1.1 2.2 2.1 2.2 1.2 0 1.7-1.3 2.1-2.8l1-3.7c.4-1.4.9-2.1 2.1-2.1s1.7.7 2.1 2.1l1 3.7c.4 1.5.9 2.8 2.1 2.8 1 0 1.8-.7 2.1-2.2l2.1-10.5c.7-3.7-1-6.2-4.4-6.2-2.1 0-3.3 1.3-5 1.3s-2.9-1.3-5-1.3Z" fill="currentColor"/></svg>
-      </span>
-      <span class="brand-copy"><strong>GPA Studio</strong><small>Sinai Dental</small></span>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Sinai Dental GPA Calculator">
+      <span class="brand-mark">SU</span>
+      <span class="brand-name">Sinai University <small>Faculty of Dentistry</small></span>
     </a>
-
-    <div class="topbar-actions">
-      <span class="save-indicator" id="storage-indicator"><span class="status-dot"></span> Saved on this device</span>
-      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Toggle appearance">
-        <svg id="theme-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 15.1A8.5 8.5 0 0 1 8.9 3.7 8.5 8.5 0 1 0 20.3 15.1Z"/></svg>
-      </button>
-    </div>
+    <span class="header-label">ACADEMIC GPA CALCULATOR</span>
   </header>
 
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-section-label">WORKSPACE</div>
-      <nav class="nav-list" aria-label="Main navigation">
-        <a class="nav-link active" href="#overview"><span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span></a>
-        <a class="nav-link" href="#calculator"><span class="nav-icon" aria-hidden="true">∑</span><span>GPA calculator</span></a>
-        <a class="nav-link" href="#progress"><span class="nav-icon" aria-hidden="true">↗</span><span>Degree progress</span></a>
-        <a class="nav-link" href="#history"><span class="nav-icon" aria-hidden="true">◷</span><span>Grade history</span></a>
-        <a class="nav-link" href="#grading-scale"><span class="nav-icon" aria-hidden="true">▤</span><span>Grading scale</span></a>
-      </nav>
+  <main class="page-shell" id="top">
+    <section class="intro">
+      <p class="eyebrow">YOUR ACADEMIC WORKSPACE</p>
+      <h1>Make every credit count.</h1>
+      <p class="intro-copy">A clear view of your GPA today and the grades you need tomorrow.</p>
+    </section>
 
-      <div class="sidebar-bottom">
-        <div class="sidebar-note">
-          <span class="note-icon" aria-hidden="true">✦</span>
-          <strong>Plan with clarity</strong>
-          <p>Keep your academic record organised and understand the grades you need next.</p>
+    <section class="results-strip" aria-label="GPA results">
+      <article class="result-item">
+        <span class="result-label">SEMESTER GPA</span>
+        <strong id="semester-gpa">—</strong>
+        <small id="semester-credit-caption">0 GPA hours</small>
+      </article>
+      <article class="result-item result-main">
+        <span class="result-label">CUMULATIVE GPA</span>
+        <strong id="cumulative-gpa">—</strong>
+        <small><span id="cumulative-grade">N/A</span> overall standing</small>
+      </article>
+      <article class="result-item">
+        <span class="result-label">GPA NEEDED</span>
+        <strong id="required-gpa">—</strong>
+        <small id="target-label">Target: 3.60 / 4.00</small>
+      </article>
+      <span id="percentage" hidden>—</span>
+      <span id="total-credit-hours" hidden>0</span>
+    </section>
+
+    <section class="record-layout" aria-label="Academic record and degree progress">
+      <article class="panel record-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">01 / ACADEMIC RECORD</p>
+            <h2>Your starting point</h2>
+          </div>
+          <span class="step-number">01</span>
         </div>
-        <div class="sidebar-credit">SINAI UNIVERSITY<br>FACULTY OF DENTISTRY</div>
+        <div class="form-grid">
+          <label class="field">
+            <span>Previous cumulative GPA</span>
+            <input id="previous-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="e.g. 3.25">
+          </label>
+          <label class="field">
+            <span>Previous GPA hours</span>
+            <input id="previous-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 68">
+          </label>
+          <label class="field">
+            <span>Credits already earned</span>
+            <input id="previous-earned-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="Same as GPA hours">
+          </label>
+          <label class="field">
+            <span>Degree credits required</span>
+            <input id="degree-credits" type="number" inputmode="numeric" min="1" max="300" step="1" value="189">
+          </label>
+          <label class="field field-goal">
+            <span>Your target GPA</span>
+            <input id="target-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" value="3.60">
+          </label>
+        </div>
+        <p class="field-note">Use the GPA scale shown on your transcript. Leave earned credits empty when they equal your previous GPA hours.</p>
+      </article>
+
+      <article class="panel progress-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">02 / DEGREE PROGRESS</p>
+            <h2>Where you stand</h2>
+          </div>
+          <span class="step-number">02</span>
+        </div>
+        <div class="progress-main">
+          <strong id="progress-percent">0%</strong>
+          <span>degree completed</span>
+        </div>
+        <div class="progress-track" id="progress-track" role="progressbar" aria-label="Degree completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="progress-fill" id="progress-bar"></div>
+        </div>
+        <div class="progress-foot">
+          <span><b id="completed-credits">0</b> of <b id="degree-credit-label">189</b> credits</span>
+          <span><b id="remaining-credits">189</b> remaining</span>
+        </div>
+        <div class="target-message" id="target-status" role="status">Enter your previous GPA and add courses to calculate your target.</div>
+      </article>
+    </section>
+
+    <section class="semester-section" id="calculator">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">03 / CURRENT SEMESTER</p>
+          <h2>Calculate this semester</h2>
+          <p>Add the courses you are taking, then enter your grades.</p>
+        </div>
+        <span class="selected-total"><b id="selected-total-credits">0</b> credit hours</span>
       </div>
-    </aside>
 
-    <main class="main-content" id="main-content">
-      <section class="welcome-row" id="overview" aria-labelledby="welcome-title">
-        <div class="welcome-copy">
-          <div class="eyebrow"><span class="eyebrow-line"></span> SINAI UNIVERSITY · FACULTY OF DENTISTRY</div>
-          <h1 id="welcome-title">Your academic progress,<br><span>made clear.</span></h1>
-          <p class="hero-copy">Calculate your GPA, follow your progress, and plan your next academic milestone.</p>
-          <a class="hero-link" href="#calculator">Start calculating <span aria-hidden="true">↗</span></a>
-        </div>
-        <div class="hero-art" aria-hidden="true">
-          <div class="hero-ring ring-one"></div>
-          <div class="hero-ring ring-two"></div>
-          <div class="hero-orb"><span>SU</span><small>DENTAL</small></div>
-          <span class="hero-spark spark-one">✦</span><span class="hero-spark spark-two">✧</span>
-        </div>
-      </section>
-
-      <section class="metric-grid" aria-label="Academic overview">
-        <article class="metric-card metric-highlight">
-          <div class="metric-top"><span>Semester GPA</span><span class="metric-icon">∑</span></div>
-          <div class="metric-value" id="semester-gpa">—</div>
-          <div class="metric-foot" id="semester-credit-caption">0 graded credit hours</div>
-        </article>
-        <article class="metric-card">
-          <div class="metric-top"><span>Cumulative GPA</span><span class="metric-icon">◈</span></div>
-          <div class="metric-value" id="cumulative-gpa">—</div>
-          <div class="metric-foot"><span class="grade-chip" id="cumulative-grade">N/A</span><span>Overall standing</span></div>
-        </article>
-        <article class="metric-card">
-          <div class="metric-top"><span>Actual weighted mark</span><span class="metric-icon">％</span></div>
-          <div class="metric-value"><span id="percentage">—</span><small>%</small></div>
-          <div class="metric-foot">Only shown when every GPA course has an actual mark</div>
-        </article>
-        <article class="metric-card">
-          <div class="metric-top"><span>GPA hours</span><span class="metric-icon">◫</span></div>
-          <div class="metric-value" id="total-credit-hours">0</div>
-          <div class="metric-foot" id="selected-course-caption">0 courses selected</div>
-        </article>
-      </section>
-
-      <section class="section-block" id="calculator" aria-labelledby="calculator-title">
-        <div class="section-heading">
-          <div><div class="eyebrow">01 · CALCULATOR</div><h2 id="calculator-title">Build your GPA picture</h2><p>Enter your previous record, add courses, and select the grades you earned.</p></div>
-          <span class="section-index">GPA WORKSPACE</span>
-        </div>
-
-        <div class="settings-grid">
-          <article class="surface-card settings-card">
-            <div class="card-heading"><span class="heading-icon blue" aria-hidden="true">↗</span><div><h3>Previous academic record</h3><p>Enter the figures from your latest transcript</p></div></div>
-            <div class="field-grid">
-              <label class="field-wrap" for="grade-scale"><span>Grading scheme</span><select id="grade-scale" class="select-control"><option value="uploadedKey" selected>Uploaded GPA key (A+ = 4.00)</option><option value="university2023">Sinai University 2023 regulations (A = 4.00)</option></select></label>
-              <label class="field-wrap" for="previous-gpa"><span>Previous cumulative GPA</span><input id="previous-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="e.g. 3.25"></label>
-              <label class="field-wrap" for="previous-credits"><span>Previous GPA hours (attempted)</span><input id="previous-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 68"></label>
-              <label class="field-wrap" for="previous-earned-credits"><span>Previously earned credits</span><input id="previous-earned-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 65"></label>
-              <label class="field-wrap" for="previous-percentage"><span>Previous actual weighted mark (%) · optional</span><input id="previous-percentage" type="number" inputmode="decimal" min="0" max="100" step="0.01" placeholder="Actual transcript average"></label>
+      <div class="course-layout">
+        <article class="panel course-panel">
+          <div class="course-panel-heading">
+            <div>
+              <h3>Find a course</h3>
+              <p id="catalog-results">Search by course name or code</p>
             </div>
-            <p class="field-hint">Use the grading scheme printed on your transcript. GPA hours and earned credits can differ after failures, withdrawals or pass-only courses.</p>
-          </article>
-
-          <article class="surface-card settings-card">
-            <div class="card-heading"><span class="heading-icon violet" aria-hidden="true">◎</span><div><h3>Your graduation target</h3><p>Set your graduation requirements and goal</p></div></div>
-            <div class="field-grid">
-              <label class="field-wrap" for="degree-credits"><span>Required degree credits</span><input id="degree-credits" type="number" inputmode="numeric" min="1" max="300" step="1" value="189"></label>
-              <label class="field-wrap" for="target-gpa"><span>Target cumulative GPA</span><input id="target-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" value="3.60"></label>
-            </div>
-            <p class="field-hint">Your required average updates automatically.</p>
-          </article>
-        </div>
-
-        <div class="planner-grid">
-          <article class="surface-card catalog-card">
-            <div class="card-heading catalog-heading">
-              <div><div class="eyebrow">COURSE CATALOGUE</div><h3>Add your courses</h3><p>Search by course name or code.</p></div>
-              <span class="count-badge" id="course-count">0 courses</span>
-            </div>
-            <div class="search-row">
-              <label class="search-box" for="course-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="course-search" type="search" placeholder="Search courses..." autocomplete="off"></label>
-              <label class="visually-hidden" for="course-level">Filter courses by level</label>
-              <select id="course-level" class="select-control"><option value="all">All levels</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option><option value="other">Other</option></select>
-            </div>
-            <div class="course-list" id="course-list" aria-live="polite"></div>
-            <div class="catalog-footer"><span><span class="mini-dot"></span> Course catalogue</span><span id="catalog-results">Showing available courses</span></div>
-          </article>
-
-          <article class="surface-card selected-card">
-            <div class="card-heading selected-heading">
-              <div><div class="eyebrow">YOUR SEMESTER</div><h3>Selected courses</h3><p>Add a course, then choose its grade or enter its actual mark.</p></div>
-              <span class="count-badge accent-badge" id="selected-count">0 selected</span>
-            </div>
-            <div id="selected-courses" class="selected-list" aria-live="polite"></div>
-            <div class="selected-summary"><span>Selected credit hours</span><strong id="selected-total-credits">0</strong></div>
-          </article>
-        </div>
-
-        <div class="action-row">
-          <div class="action-primary-group">
-            <button class="button button-primary" id="save-grades" type="button"><span aria-hidden="true">✓</span> Save results</button>
-            <details class="more-actions">
-              <summary class="button button-secondary">More actions <span aria-hidden="true">⌄</span></summary>
-              <div class="more-actions-menu">
-                <button class="button button-secondary" id="load-grades" type="button">Load saved results</button>
-                <button class="button button-secondary" id="export-csv" type="button">Export CSV</button>
-                <button class="button button-secondary" id="backup-json" type="button">Download backup</button>
-                <button class="button button-secondary" id="import-json-button" type="button">Import backup</button>
-                <button class="button button-secondary" id="print-report" type="button">Print / PDF</button>
-              </div>
-            </details>
-            <input class="visually-hidden" id="import-json" type="file" accept="application/json,.json">
+            <span class="course-count" id="course-count">0 courses</span>
           </div>
-          <button class="button button-danger-ghost" id="reset" type="button">Reset</button>
-        </div>
-      </section>
-
-      <section class="section-block" id="progress" aria-labelledby="progress-title">
-        <div class="section-heading">
-          <div><div class="eyebrow">02 · PLANNING</div><h2 id="progress-title">Degree progress & target planner</h2><p>See how much of your programme is complete and the average you need next.</p></div>
-          <span class="section-index">YOUR NEXT MILESTONE</span>
-        </div>
-        <div class="progress-grid">
-          <article class="surface-card degree-card">
-            <div class="card-heading"><span class="heading-icon green" aria-hidden="true">◉</span><div><h3>Degree completion</h3><p>Credits earned toward your degree</p></div></div>
-            <div class="progress-numbers"><strong id="completed-credits">0</strong><span>of <b id="degree-credit-label">189</b> credits</span><strong class="progress-percent" id="progress-percent">0%</strong></div>
-            <div class="progress-track" role="progressbar" aria-label="Degree completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
-            <div class="progress-foot"><span id="remaining-credits">189</span> credit hours remaining</div>
-          </article>
-          <article class="surface-card target-card">
-            <div class="card-heading"><span class="heading-icon amber" aria-hidden="true">✧</span><div><h3>What do you need?</h3><p>Average GPA needed across your remaining credits</p></div></div>
-            <div class="target-number" id="required-gpa">—</div>
-            <div class="target-status" id="target-status" role="status">Enter your academic record to calculate a target.</div>
-            <div class="target-foot">Goal: <strong id="target-label">3.60 / 4.00</strong></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="section-block" id="history" aria-labelledby="history-title">
-        <div class="section-heading">
-          <div><div class="eyebrow">03 · YOUR RECORD</div><h2 id="history-title">Grade history</h2><p>Saved snapshots of your semester calculations on this device.</p></div>
-          <div class="heading-actions"><span class="section-index">RECENT RESULTS</span><button class="text-button" id="clear-history" type="button">Clear history</button></div>
-        </div>
-        <article class="surface-card history-card">
-          <div class="history-trend" id="history-trend" aria-label="Saved cumulative GPA trend"></div>
-          <div class="table-wrap" id="grade-history"></div>
+          <label class="search-field" for="course-search">
+            <span aria-hidden="true">⌕</span>
+            <input id="course-search" type="search" placeholder="Search courses..." autocomplete="off">
+          </label>
+          <div class="course-list" id="course-list" aria-live="polite"></div>
         </article>
-      </section>
 
-      <section class="section-block" id="grading-scale" aria-labelledby="scale-title">
-        <div class="section-heading">
-          <div><div class="eyebrow">04 · REFERENCE</div><h2 id="scale-title">Grading scale</h2><p>Grade points and percentage bands used in this calculator.</p></div>
-          <span class="section-index">4.00 GPA SCALE</span>
-        </div>
-        <details class="scale-details">
-          <summary>View grading tables and special grade rules</summary>
-          <article class="surface-card scale-card">
-            <div class="scale-reference">
-              <section class="scale-group">
-                <h3>Uploaded GPA key</h3>
-                <div class="scale-grid">
-                  <div class="scale-item"><span class="scale-letter grade-a">A+</span><div><strong>95% and above</strong><small>4.00 grade points</small></div></div>
-                  <div class="scale-item"><span class="scale-letter grade-a">A</span><div><strong>90% to less than 95%</strong><small>3.80 grade points</small></div></div>
-                  <div class="scale-item"><span class="scale-letter grade-a">A−</span><div><strong>85% to less than 90%</strong><small>3.60 grade points</small></div></div>
-                  <div class="scale-item"><span class="scale-letter grade-b">B+</span><div><strong>80% to less than 85%</strong><small>3.30 grade points</small></div></div>
-                  <div class="scale-item"><span class="scale-letter grade-b">B</span><div><strong>75% to less than 80%</strong><small>3.00 grade points</small></div></div>
-                  <div class="scale-item"><span class="scale-letter grade-c">C+</span><div><strong>70% to less than 75%</strong><small>2.70 grade points</small></div></div>
-                  <div class="scale-item"><span class="scale-letter grade-c">C</span><div><strong>65% to less than 70%</strong><small>2.40 grade points</small></div></div>
-                  <div class="scale-item"><span class="scale-letter grade-d">D</span><div><strong>60% to less than 65%</strong><small>2.00 grade points</small></div></div>
-                  <div class="scale-item"><span class="scale-letter grade-f">F</span><div><strong>Below 60%</strong><small>0.00 grade points</small></div></div>
-                </div>
-              </section>
-              <section class="scale-group">
-              <h3>Sinai University 2023 regulations</h3>
-              <div class="scale-grid">
-                <div class="scale-item"><span class="scale-letter grade-a">A</span><div><strong>90% to 100%</strong><small>4.00 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-a">A−</span><div><strong>85% to less than 90%</strong><small>3.70 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-b">B+</span><div><strong>80% to less than 85%</strong><small>3.30 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-b">B</span><div><strong>75% to less than 80%</strong><small>3.00 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-b">B−</span><div><strong>72.5% to less than 75%</strong><small>2.70 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-c">C+</span><div><strong>70% to less than 72.5%</strong><small>2.30 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-c">C</span><div><strong>67.5% to less than 70%</strong><small>2.00 grade points*</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-c">C−</span><div><strong>65% to less than 67.5%</strong><small>1.70 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-d">D+</span><div><strong>62.5% to less than 65%</strong><small>1.30 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-d">D</span><div><strong>60% to less than 62.5%</strong><small>1.00 grade points</small></div></div>
-                <div class="scale-item"><span class="scale-letter grade-f">F</span><div><strong>Below 60%</strong><small>0.00 grade points</small></div></div>
-              </div>
-            </section>
+        <article class="panel selected-panel">
+          <div class="course-panel-heading">
+            <div>
+              <h3>Your selected courses</h3>
+              <p id="selected-course-caption">0 courses selected</p>
+            </div>
+            <span class="course-count course-count-dark" id="selected-count">0 selected</span>
           </div>
-          <p class="scale-disclaimer">F and FW contribute zero points but remain in GPA hours. Ordinary W is excluded from CGPA; FW is a forced withdrawal counted as failure. I remains excluded until resolved. P earns degree credit without affecting GPA. A retake replaces the earlier attempt instead of adding a duplicate GPA hour; the best grade is kept, and second-or-later repeats of a failed course are capped at D. Weighted percentages require actual marks and are never inferred from GPA. The plan in this catalogue totals 189 credits; the 2023 regulation states 192 credits, so confirm which curriculum applies to your cohort.</p>
+          <div class="selected-list" id="selected-courses" aria-live="polite"></div>
         </article>
-        </details>
-      </section>
+      </div>
 
-      <footer class="page-footer"><span class="footer-brand">SINAI <b>DENTAL</b></span><span>Academic GPA calculator · Unofficial student tool</span><span>Designed by Zeyad Samir</span></footer>
-    </main>
-  </div>
+      <div class="below-tools">
+        <p><span class="autosave-dot"></span> Your changes are saved automatically on this device.</p>
+        <button class="clear-button" id="reset" type="button">Clear calculator</button>
+      </div>
+    </section>
 
-  <dialog class="detail-dialog" id="details-dialog" aria-labelledby="dialog-title">
-    <div class="dialog-head"><div><div class="eyebrow">SAVED SNAPSHOT</div><h2 id="dialog-title">Semester details</h2></div><button class="icon-button" id="dialog-close" type="button" aria-label="Close dialog">×</button></div>
-    <div id="dialog-body" class="dialog-body"></div>
-    <div class="dialog-actions"><button class="button button-primary" id="dialog-done" type="button">Done</button></div>
-  </dialog>
+    <footer class="site-footer">
+      <span>SINAI UNIVERSITY · FACULTY OF DENTISTRY</span>
+      <span>Unofficial academic planning tool</span>
+    </footer>
+  </main>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
