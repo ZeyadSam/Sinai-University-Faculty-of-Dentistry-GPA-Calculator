@@ -345,7 +345,14 @@ function renderSelectedCourses() {
     repeatWrap.append(repeatLabel, repeatSelect);
     repeatControls.append(priorWrap, repeatWrap);
 
-    row.append(info, gradeControls, remove, repeatControls);
+    const repeatDetails = document.createElement("details");
+    repeatDetails.className = "repeat-details";
+    repeatDetails.open = Boolean(item.priorGrade);
+    const repeatSummary = document.createElement("summary");
+    repeatSummary.textContent = item.priorGrade ? "Retake details" : "Retake options";
+    repeatDetails.append(repeatSummary, repeatControls);
+
+    row.append(info, gradeControls, remove, repeatDetails);
     fragment.append(row);
   }
   elements.selectedCourses.append(fragment);
