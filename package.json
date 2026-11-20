@@ -1,0 +1,14 @@
+{
+  "name": "sinai-dental-gpa-studio",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A zero-dependency GPA calculator for Sinai University Faculty of Dentistry.",
+  "scripts": {
+    "check": "node --check app.js && node --check gpa-engine.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
