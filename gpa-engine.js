@@ -157,6 +157,7 @@ export function gradeFromGpa(gpa, scaleId = DEFAULT_GRADE_SCALE) {
     .filter(([grade]) => grade !== "F")
     .sort((a, b) => b[1] - a[1])
     .find(([, points]) => gpa >= points)?.[0] || "F";
+  return grade === "A-" ? "A−" : grade;
 }
 
 function applyRepeatCap(grade, priorGrade, repeatNumber, scaleId) {
