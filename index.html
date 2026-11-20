@@ -103,7 +103,7 @@
 
         <div class="settings-grid">
           <article class="surface-card settings-card">
-            <div class="card-heading"><span class="heading-icon blue" aria-hidden="true">↗</span><div><h3>Previous academic record</h3><p>Completed credits before this semester</p></div></div>
+            <div class="card-heading"><span class="heading-icon blue" aria-hidden="true">↗</span><div><h3>Previous academic record</h3><p>Previous GPA hours, earned credits and actual marks</p></div></div>
             <div class="field-grid">
               <label class="field-wrap" for="previous-gpa"><span>Previous cumulative GPA</span><input id="previous-gpa" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="e.g. 3.25"></label>
               <label class="field-wrap" for="previous-credits"><span>Previous GPA hours (attempted)</span><input id="previous-credits" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="e.g. 68"></label>
@@ -126,7 +126,7 @@
         <div class="planner-grid">
           <article class="surface-card catalog-card">
             <div class="card-heading catalog-heading">
-              <div><div class="eyebrow">COURSE CATALOGUE</div><h3>Add your courses</h3><p>Search by course title or course code.</p></div>
+              <div><div class="eyebrow">COURSE CATALOGUE</div><h3>Add your courses</h3><p>Search by title or code. The study plan requires only two 2-credit elective choices.</p></div>
               <span class="count-badge" id="course-count">0 courses</span>
             </div>
             <div class="search-row">
@@ -169,7 +169,7 @@
         </div>
         <div class="progress-grid">
           <article class="surface-card degree-card">
-            <div class="card-heading"><span class="heading-icon green" aria-hidden="true">◉</span><div><h3>Degree completion</h3><p>Credits with a recorded grade</p></div></div>
+            <div class="card-heading"><span class="heading-icon green" aria-hidden="true">◉</span><div><h3>Degree completion</h3><p>Credits earned toward the degree, excluding failed and non-credit courses</p></div></div>
             <div class="progress-numbers"><strong id="completed-credits">0</strong><span>of <b id="degree-credit-label">189</b> credits</span><strong class="progress-percent" id="progress-percent">0%</strong></div>
             <div class="progress-track" role="progressbar" aria-label="Degree completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
             <div class="progress-foot"><span id="remaining-credits">189</span> credit hours remaining</div>
@@ -212,7 +212,7 @@
             <div class="scale-item"><span class="scale-letter grade-f">F</span><div><strong>Below 60%</strong><small>0.00 grade points</small></div></div>
             <div class="scale-item"><span class="scale-letter grade-na">I/P/NC/W</span><div><strong>Official transcript notations</strong><small>Not zero-point GPA grades</small></div></div>
           </div>
-          <p class="scale-disclaimer">I (Incomplete), P (Pass), NC (No Credit) and W (Withdrawal) are transcript notations, not zero-point letter grades. P earns degree credit but does not affect GPA; I, NC and W are excluded from GPA and earned-credit totals. F contributes zero points and remains in GPA hours, but is not an earned credit. Weighted percentage is displayed only when actual marks are entered for every GPA-counted course; it is never inferred from GPA.</p>
+          <p class="scale-disclaimer">I (Incomplete), P (Pass), NC (No Credit) and W (Withdrawal) are transcript notations, not zero-point letter grades. P earns degree credit but does not affect GPA; I, NC and W are excluded from GPA and earned-credit totals. F contributes zero points and remains in GPA hours, but is not an earned credit. Weighted percentage is displayed only when actual marks are entered for every GPA-counted course; it is never inferred from GPA. The programme requires 4 elective credits: choose two from the five marked elective options.</p>
         </article>
       </section>
 
