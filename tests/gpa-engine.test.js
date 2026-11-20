@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  GRADE_POINTS, calculateAcademicMetrics, gradeFromGpa, gradeFromMark, isValidGrade, normalizeGrade
+  GRADE_POINTS, GRADING_SCALES, calculateAcademicMetrics, gradeFromGpa, gradeFromMark, gradePointsFor, isValidGrade, normalizeGrade
 } from "../gpa-engine.js";
 import { courseCatalog, ELECTIVE_COURSE_LIMIT } from "../courses.js";
 
@@ -53,7 +53,7 @@ test("legacy previous-credit field remains a fallback for GPA-hours and earned-h
 test("future required GPA accounts for earned remaining hours and existing GPA-hours", () => {
   const r = calculateAcademicMetrics({previousGpa:"3.00",previousGpaHours:"30",previousEarnedCredits:"27",degreeCredits:"90",targetGpa:"3.50"});
   assert.equal(r.remainingDegreeCredits,63);
-  closeTo(r.requiredGpa,(3.5*(30+63)-90)/63);
+  closeTo(r.requiredGpa,(3.5*(30+60)-90)/60);
 });
 
 test("required future GPA is not incorrectly set to zero merely because current GPA meets target", () => {
@@ -140,4 +140,127 @@ test("Level 4 medical and surgical courses match the official 3-credit values", 
 test("course catalogue contains no duplicate course codes after normalization", () => {
   const codes = courseCatalog.map(item => item.code);
   assert.equal(new Set(codes).size, codes.length);
+});
+
+
+test("supports the different point values in the published 2023 regulation", () => {
+  assert.equal(GRADING_SCALES.university2023.gradePoints.A,4.0);
+  assert.equal(GRADING_SCALES.university2023.gradePoints["A-"],3.7);
+  assert.equal(GRADING_SCALES.university2023.gradePoints["B-"],2.7);
+  assert.equal(gradeFromMark(89,"university2023"),"A-");
+  assert.equal(gradeFromMark(74,"university2023"),"B-");
+  assert.equal(gradeFromMark(70,"university2023"),"C+");
+  assert.equal(gradeFromMark(67.5,"university2023"),"C");
+  assert.equal(gradeFromMark(64.9,"university2023"),"C-");
+  assert.equal(gradeFromGpa(3.7,"university2023"),"A-");
+  assert.equal(isValidGrade("A+","university2023"),false);
+  assert.equal(gradePointsFor("A+","uploadedKey"),4.0);
+});
+
+test("FW is a zero-point failed attempt counted in GPA hours, unlike ordinary W", () => {
+  const forced = calculateAcademicMetrics({courses:[course(3,"A"),course(2,"FW")]});
+  assert.equal(forced.semesterGpaHours,5);
+  assert.equal(forced.semesterEarnedHours,3);
+  closeTo(forced.semesterGpa,2.4);
+  const ordinary = calculateAcademicMetrics({courses:[course(3,"A"),course(2,"W")]});
+  assert.equal(ordinary.semesterGpaHours,3);
+  assert.equal(ordinary.semesterEarnedHours,3);
+  closeTo(ordinary.semesterGpa,4.0);
+});
+
+test("repeating a previously failed course replaces the old CGPA contribution without adding another GPA hour", () => {
+  const r = calculateAcademicMetrics({
+    previousGpa:"3.00", previousGpaHours:"30", previousEarnedCredits:"27",
+    degreeCredits:40, targetGpa:3.0,
+    courses:[{course:{code:"DER 4101",credits:3},priorGrade:"F",repeatNumber:1,grade:"A+"}]
+  });
+  assert.equal(r.cumulativeGpaHours,30);
+  assert.equal(r.cumulativeEarnedHours,30);
+  closeTo(r.cumulativeGpa,3.4);
+  closeTo(r.semesterGpa,4.0);
+  assert.equal(r.outstandingFailures,0);
+});
+
+test("a better grade-improvement attempt replaces the old grade, not its credit-hour denominator", () => {
+  const r = calculateAcademicMetrics({
+    previousGpa:"3.00", previousGpaHours:"30", previousEarnedCredits:"30",
+    courses:[{course:{code:"DES 1101",credits:3},priorGrade:"B",repeatNumber:1,grade:"A+"}]
+  });
+  assert.equal(r.cumulativeGpaHours,30);
+  closeTo(r.cumulativeGpa,3.1);
+  assert.equal(r.cumulativeEarnedHours,30);
+});
+
+test("a lower grade-improvement attempt leaves the earlier higher CGPA grade in place", () => {
+  const r = calculateAcademicMetrics({
+    previousGpa:"3.00", previousGpaHours:"30", previousEarnedCredits:"30",
+    courses:[{course:{code:"DES 1101",credits:3},priorGrade:"A",repeatNumber:1,grade:"B"}]
+  });
+  assert.equal(r.cumulativeGpaHours,30);
+  closeTo(r.cumulativeGpa,3.0);
+  closeTo(r.semesterGpa,3.0);
+  assert.ok(r.repeatNotices.some(x=>x.includes("lower grade")));
+});
+
+test("second-or-later repeat of a failed course is capped at D", () => {
+  const r = calculateAcademicMetrics({
+    previousGpa:"3.00", previousGpaHours:"30", previousEarnedCredits:"27",
+    courses:[{course:{code:"DER 4101",credits:3},priorGrade:"F",repeatNumber:2,grade:"A+"}]
+  });
+  assert.equal(r.courses[0].effectiveGrade,"D");
+  closeTo(r.semesterGpa,2.0);
+  closeTo(r.cumulativeGpa,3.2);
+  assert.ok(r.repeatNotices.some(x=>x.includes("capped at D")));
+});
+
+test("a W, I or NC retake result does not erase an earlier F/FW", () => {
+  for (const grade of ["W","I","NC"]) {
+    const r = calculateAcademicMetrics({
+      previousGpa:"3.00", previousGpaHours:"30", previousEarnedCredits:"27",
+      courses:[{course:{code:"DER 4101",credits:3},priorGrade:"F",repeatNumber:1,grade}]
+    });
+    assert.equal(r.cumulativeGpaHours,30,grade);
+    closeTo(r.cumulativeGpa,3.0);
+    assert.ok(r.repeatNotices.length>0);
+  }
+});
+
+test("a second improvement attempt on an already passed course is invalid", () => {
+  const r = calculateAcademicMetrics({
+    previousGpa:"3.00", previousGpaHours:"30", previousEarnedCredits:"30",
+    courses:[{course:{code:"DES 1101",credits:3},priorGrade:"B",repeatNumber:2,grade:"A+"}]
+  });
+  assert.equal(r.repeatValid,false);
+  assert.equal(r.targetTone,"bad");
+});
+
+test("more than three passed-course improvement attempts are rejected", () => {
+  const courses = [1,2,3,4].map(i => ({
+    course:{code:"COURSE "+i,credits:2},priorGrade:"B",repeatNumber:1,grade:"A"
+  }));
+  const r = calculateAcademicMetrics({previousGpa:"3.0",previousGpaHours:"20",previousEarnedCredits:"20",courses});
+  assert.equal(r.repeatValid,false);
+  assert.ok(r.repeatNotices.some(x=>x.includes("three courses")));
+});
+
+test("future target average does not double-count already-attempted failed hours", () => {
+  const r = calculateAcademicMetrics({
+    previousGpa:"3.00",previousGpaHours:"30",previousEarnedCredits:"27",
+    degreeCredits:40,targetGpa:3.0
+  });
+  assert.equal(r.remainingDegreeCredits,13);
+  assert.equal(r.outstandingFailures,3);
+  assert.equal(r.futureGpaHours,10);
+  closeTo(r.requiredGpa,(3*40-90)/10);
+});
+
+test("an ongoing retake of an earlier failure does not create another outstanding failed hour", () => {
+  const r = calculateAcademicMetrics({
+    previousGpa:"3.00",previousGpaHours:"30",previousEarnedCredits:"27",
+    degreeCredits:40,
+    courses:[{course:{code:"DER 4101",credits:3},priorGrade:"F",repeatNumber:1,grade:"F"}]
+  });
+  assert.equal(r.outstandingFailures,3);
+  assert.equal(r.cumulativeGpaHours,30);
+  assert.equal(r.cumulativeEarnedHours,27);
 });
