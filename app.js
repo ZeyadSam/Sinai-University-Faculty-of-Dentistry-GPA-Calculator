@@ -353,46 +353,51 @@ function renderSelectedCourses() {
 
 function saveDraft() {
   const draft = {
-    version: 4,
+    version: 5,
+    gradingScale: getScaleId(),
     previousGpa: elements.previousGpa.value,
     previousCredits: elements.previousCredits.value,
     previousEarnedCredits: elements.previousEarnedCredits.value,
     previousPercentage: elements.previousPercentage.value,
     degreeCredits: elements.degreeCredits.value,
     targetGpa: elements.targetGpa.value,
-    selectedCourses: selectedCourses.map(item => ({ code: item.course.code, grade: normalizeGrade(item.grade) || "", mark: item.mark ?? null }))
+    selectedCourses: selectedCourses.map(item => ({
+      code: item.course.code, grade: normalizeGrade(item.grade) || "", mark: item.mark ?? null,
+      priorGrade: item.priorGrade || "", repeatNumber: item.repeatNumber || 1
+    }))
   };
   return writeStorage(STORAGE_KEYS.state, draft);
 }
 
 function sanitizeHistory(value) {
   if (!Array.isArray(value)) return [];
-  return value
-    .filter(entry => entry && typeof entry === "object" && Array.isArray(entry.courses))
+  return value.filter(entry => entry && typeof entry === "object" && Array.isArray(entry.courses))
     .map(entry => {
-      const previousGpaHours = entry.previousGpaHours ?? entry.previousCredits ?? "";
-      const previousEarnedCredits = entry.previousEarnedCredits ?? entry.previousCredits ?? "";
-      const courses = entry.courses
-        .filter(item => item && item.course && isValidGrade(item.grade))
-        .map(item => {
-          const mark = item.mark === "" || item.mark === null || item.mark === undefined ? null : Number(item.mark);
-          const validMark = Number.isFinite(mark) && mark >= 0 && mark <= 100;
-          const grade = validMark ? gradeFromMark(mark) : normalizeGrade(item.grade);
-          return {
-            course: item.course,
-            grade: isValidGrade(grade) ? grade : "",
-            mark: validMark ? mark : null
-          };
-        });
+      const gradingScale = GRADING_SCALES[entry.gradingScale] ? entry.gradingScale : DEFAULT_GRADE_SCALE;
+      const courses = entry.courses.filter(item => item && item.course).map(item => {
+        const mark = item.mark === "" || item.mark === null || item.mark === undefined ? null : Number(item.mark);
+        const markValid = Number.isFinite(mark) && mark >= 0 && mark <= 100;
+        const grade = markValid ? gradeFromMark(mark, gradingScale) : normalizeGrade(item.grade);
+        const priorGrade = normalizeGrade(item.priorGrade);
+        return {
+          course: item.course,
+          grade: isValidGrade(grade, gradingScale) ? grade : "",
+          mark: markValid ? mark : null,
+          priorGrade: priorGrade && isValidGrade(priorGrade, gradingScale) ? priorGrade : "",
+          repeatNumber: Number(item.repeatNumber) >= 2 ? 2 : 1
+        };
+      });
       const metrics = calculateAcademicMetrics({
         previousGpa: entry.previousGpa ?? "",
-        previousGpaHours,
-        previousEarnedCredits,
+        previousGpaHours: entry.previousGpaHours ?? entry.previousCredits ?? "",
+        previousEarnedCredits: entry.previousEarnedCredits ?? entry.previousCredits ?? "",
         previousPercentage: entry.previousPercentage ?? "",
+        gradingScale,
         courses
       });
       return {
         ...entry,
+        gradingScale,
         semesterGpa: metrics.semesterGpa?.toFixed(2) ?? "—",
         cumulativeGpa: metrics.cumulativeGpa?.toFixed(2) ?? "—",
         percentage: metrics.cumulativeWeightedPercentage?.toFixed(2) ?? null,
@@ -413,20 +418,24 @@ function persistHistory() {
 
 function saveGrades() {
   const result = updateDashboard();
-  if (!result.previous.valid || !result.degreeValid || !result.targetValid) {
-    showToast("Please correct the highlighted academic settings before saving.");
+  if (!result.previous.valid || !result.degreeValid || !result.targetValid || !result.repeatValid) {
+    showToast("Correct the highlighted GPA, degree and repeat-course details before saving.");
     return;
   }
-  const recorded = selectedCourses.filter(item => isValidGrade(item.grade));
+  const recorded = selectedCourses.filter(item => isValidGrade(item.grade, getScaleId()));
   if (!recorded.length) {
     showToast("Choose a grade or transcript notation for at least one course before saving.");
     return;
   }
-  savedGrades = Object.fromEntries(recorded.map(item => [item.course.code, { grade: normalizeGrade(item.grade), mark: item.mark ?? null }]));
+  savedGrades = Object.fromEntries(recorded.map(item => [item.course.code, {
+    grade: normalizeGrade(item.grade), mark: item.mark ?? null,
+    priorGrade: item.priorGrade || "", repeatNumber: item.repeatNumber || 1
+  }]));
   const gradesSaved = writeStorage(STORAGE_KEYS.savedGrades, savedGrades);
   const draftSaved = saveDraft();
   const snapshot = {
     timestamp: new Date().toISOString(),
+    gradingScale: result.gradingScale,
     semesterGpa: result.semesterGpa?.toFixed(2) ?? "—",
     cumulativeGpa: result.cumulativeGpa?.toFixed(2) ?? "—",
     percentage: result.cumulativeWeightedPercentage?.toFixed(2) ?? null,
@@ -439,12 +448,17 @@ function saveGrades() {
     previousCredits: result.previous.gpaHours,
     previousEarnedCredits: result.previous.earnedHours,
     previousPercentage: result.previous.weightedPercentage,
-    courses: recorded.map(item => ({ course: { ...item.course }, grade: normalizeGrade(item.grade), mark: item.mark ?? null }))
+    courses: recorded.map(item => ({
+      course: { ...item.course }, grade: normalizeGrade(item.grade), mark: item.mark ?? null,
+      priorGrade: item.priorGrade || "", repeatNumber: item.repeatNumber || 1
+    }))
   };
   gradeHistory = [snapshot, ...gradeHistory].slice(0, 20);
   const historySaved = persistHistory();
   renderHistory();
-  showToast(gradesSaved && draftSaved && historySaved ? "Grades and semester snapshot saved." : "Some data could not be saved. Check browser storage.");
+  showToast(gradesSaved && draftSaved && historySaved
+    ? "Grades and semester snapshot saved."
+    : "Some data could not be saved. Check browser storage.");
 }
 
 function restoreDraft() {
@@ -454,10 +468,36 @@ function restoreDraft() {
   elements.previousCredits.value = String(draft.previousGpaHours ?? draft.previousCredits ?? "");
   elements.previousEarnedCredits.value = String(draft.previousEarnedCredits ?? draft.previousGpaHours ?? draft.previousCredits ?? "");
   elements.previousPercentage.value = String(draft.previousPercentage ?? "");
+  elements.gradeScale.value = GRADING_SCALES[draft.gradingScale] ? draft.gradingScale : DEFAULT_GRADE_SCALE;
   elements.degreeCredits.value = String(draft.degreeCredits ?? "189");
   elements.targetGpa.value = String(draft.targetGpa ?? "3.60");
-  selectedCourses = normalizeCourseSelections(draft.selectedCourses);
+  selectedCourses = normalizeCourseSelections(draft.selectedCourses, getScaleId());
   return true;
+}
+
+function loadSavedGrades() {
+  const stored = readStorage(STORAGE_KEYS.savedGrades, {});
+  savedGrades = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+  const entries = Object.entries(savedGrades).filter(([code, entry]) => {
+    const grade = typeof entry === "string" ? entry : entry?.grade;
+    return courseCatalog.some(course => course.code === code) && isValidGrade(grade, getScaleId());
+  });
+  if (!entries.length) {
+    showToast("No saved course grades were found on this device.");
+    return;
+  }
+  selectedCourses = normalizeCourseSelections(entries.map(([code, entry]) => ({
+    code,
+    grade: typeof entry === "string" ? entry : entry?.grade,
+    mark: typeof entry === "object" && entry !== null ? entry.mark : null,
+    priorGrade: typeof entry === "object" && entry !== null ? entry.priorGrade : "",
+    repeatNumber: typeof entry === "object" && entry !== null ? entry.repeatNumber : 1
+  })), getScaleId());
+  renderCourses();
+  renderSelectedCourses();
+  updateDashboard();
+  saveDraft();
+  showToast("Saved course grades loaded. No more than two elective options are allowed by the study plan.");
 }
 
 function loadSavedGrades() {
@@ -490,6 +530,7 @@ function resetCalculator() {
   elements.previousCredits.value = "";
   elements.previousEarnedCredits.value = "";
   elements.previousPercentage.value = "";
+  elements.gradeScale.value = DEFAULT_GRADE_SCALE;
   elements.search.value = ""
   elements.level.value = "all";
   renderCourses();
@@ -523,6 +564,7 @@ function exportCsv() {
   const rows = [
     ["Sinai University Faculty of Dentistry - GPA Report"],
     ["Generated", new Date().toLocaleString()],
+    ["Grading scale", GRADING_SCALES[result.gradingScale].label],
     ["Previous GPA", result.previous.gpa],
     ["Previous GPA hours", result.previous.gpaHours],
     ["Previous earned credits", result.previous.earnedHours],
@@ -531,14 +573,23 @@ function exportCsv() {
     ["Cumulative GPA", result.cumulativeGpa === null ? "—" : result.cumulativeGpa.toFixed(2)],
     ["Semester GPA hours", result.semesterGpaHours],
     ["Semester earned hours", result.semesterEarnedHours],
+    ["Outstanding failed hours", result.outstandingFailures],
+    ["Future GPA-counted hours", result.futureGpaHours],
     ["Actual cumulative weighted mark", result.cumulativeWeightedPercentage === null ? "—" : result.cumulativeWeightedPercentage.toFixed(2) + "%"],
     [],
-    ["Course code", "Course title", "Credits", "Grade / notation", "Grade points", "Actual mark (%)"]
+    ["Course code", "Course title", "Credits", "Previous grade", "Repeat number", "Current grade", "Effective CGPA grade", "Grade points", "Actual mark (%)"]
   ];
   for (const item of selectedCourses) {
     const grade = normalizeGrade(item.grade);
-    rows.push([item.course.code, item.course.title, item.course.credits, grade || "Not graded",
-      Object.hasOwn(GRADE_POINTS, grade) ? GRADE_POINTS[grade].toFixed(2) : "", item.mark ?? ""]);
+    const courseResult = result.courses.find(entry => entry.course.code === item.course.code);
+    const effectiveGrade = courseResult?.effectiveGrade ?? grade;
+    const points = gradePointsFor(effectiveGrade, result.gradingScale);
+    rows.push([
+      item.course.code, item.course.title, item.course.credits, item.priorGrade || "",
+      item.priorGrade ? (item.repeatNumber >= 2 ? "2+" : "1") : "",
+      grade || "Not graded", effectiveGrade || "",
+      points === null ? "" : points.toFixed(2), item.mark ?? ""
+    ]);
   }
   const csv = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
   downloadFile("Sinai_Dental_GPA_Report.csv", csv, "text/csv;charset=utf-8");
@@ -547,16 +598,20 @@ function exportCsv() {
 
 function exportBackup() {
   const draft = {
-    version: 4,
+    version: 5,
+    gradingScale: getScaleId(),
     previousGpa: elements.previousGpa.value,
     previousCredits: elements.previousCredits.value,
     previousEarnedCredits: elements.previousEarnedCredits.value,
     previousPercentage: elements.previousPercentage.value,
     degreeCredits: elements.degreeCredits.value,
     targetGpa: elements.targetGpa.value,
-    selectedCourses: selectedCourses.map(item => ({ code: item.course.code, grade: normalizeGrade(item.grade) || "", mark: item.mark ?? null }))
+    selectedCourses: selectedCourses.map(item => ({
+      code: item.course.code, grade: normalizeGrade(item.grade) || "", mark: item.mark ?? null,
+      priorGrade: item.priorGrade || "", repeatNumber: item.repeatNumber || 1
+    }))
   };
-  const payload = { app: "Sinai Dental GPA Studio", version: 4, exportedAt: new Date().toISOString(), draft, savedGrades, history: gradeHistory, theme: document.documentElement.dataset.theme };
+  const payload = { app: "Sinai Dental GPA Studio", version: 5, exportedAt: new Date().toISOString(), draft, savedGrades, history: gradeHistory, theme: document.documentElement.dataset.theme };
   downloadFile("Sinai_Dental_GPA_Backup.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
   showToast("Backup file exported.");
 }
@@ -568,36 +623,53 @@ async function importBackup(file) {
     if (!data || data.app !== "Sinai Dental GPA Studio" || !data.draft || typeof data.draft !== "object") throw new Error("Unsupported backup format");
     if (!window.confirm("Importing this backup will replace the current calculator data on this device. Continue?")) return;
     const draft = data.draft;
+    const scaleId = GRADING_SCALES[draft.gradingScale] ? draft.gradingScale : DEFAULT_GRADE_SCALE;
+    elements.gradeScale.value = scaleId;
     const oldCredits = String(draft.previousGpaHours ?? draft.previousCredits ?? "");
     const normalizedDraft = {
-      version: 4,
+      version: 5,
+      gradingScale: scaleId,
       previousGpa: String(draft.previousGpa ?? ""),
       previousCredits: oldCredits,
       previousEarnedCredits: String(draft.previousEarnedCredits ?? oldCredits),
       previousPercentage: String(draft.previousPercentage ?? ""),
       degreeCredits: String(draft.degreeCredits ?? "189"),
       targetGpa: String(draft.targetGpa ?? "3.60"),
-      selectedCourses: normalizeCourseSelections(draft.selectedCourses)
-        .map(item => ({ code: item.course.code, grade: item.grade, mark: item.mark }))
+      selectedCourses: normalizeCourseSelections(draft.selectedCourses, scaleId).map(item => ({
+        code: item.course.code, grade: item.grade, mark: item.mark,
+        priorGrade: item.priorGrade, repeatNumber: item.repeatNumber
+      }))
     };
     const importedGrades = data.savedGrades && typeof data.savedGrades === "object" && !Array.isArray(data.savedGrades)
       ? Object.fromEntries(Object.entries(data.savedGrades).filter(([code, value]) => {
           const grade = typeof value === "string" ? value : value?.grade;
-          return courseCatalog.some(course => course.code === code) && isValidGrade(grade);
+          return courseCatalog.some(course => course.code === code) && isValidGrade(grade, scaleId);
         }).map(([code, value]) => {
           const gradeValue = typeof value === "string" ? value : value?.grade;
           const mark = typeof value === "object" && value !== null && value.mark !== null && value.mark !== undefined ? Number(value.mark) : null;
           const validMark = Number.isFinite(mark) && mark >= 0 && mark <= 100;
-          return [code, { grade: validMark ? gradeFromMark(mark) : normalizeGrade(gradeValue), mark: validMark ? mark : null }];
+          return [code, {
+            grade: validMark ? gradeFromMark(mark, scaleId) : normalizeGrade(gradeValue),
+            mark: validMark ? mark : null,
+            priorGrade: typeof value === "object" && value !== null ? normalizeGrade(value.priorGrade) : "",
+            repeatNumber: typeof value === "object" && value !== null && Number(value.repeatNumber) >= 2 ? 2 : 1
+          }];
         })) : {};
     const importedHistory = sanitizeHistory(data.history);
-    const allSaved = [writeStorage(STORAGE_KEYS.state, normalizedDraft), writeStorage(STORAGE_KEYS.savedGrades, importedGrades), writeStorage(STORAGE_KEYS.history, importedHistory)].every(Boolean);
+    const allSaved = [
+      writeStorage(STORAGE_KEYS.state, normalizedDraft),
+      writeStorage(STORAGE_KEYS.savedGrades, importedGrades),
+      writeStorage(STORAGE_KEYS.history, importedHistory)
+    ].every(Boolean);
     if (!allSaved) throw new Error("Local storage write failed");
     savedGrades = importedGrades;
     gradeHistory = importedHistory;
     restoreDraft();
     if (data.theme === "dark" || data.theme === "light") setTheme(data.theme);
-    renderCourses(); renderSelectedCourses(); renderHistory(); updateDashboard();
+    renderCourses();
+    renderSelectedCourses();
+    renderHistory();
+    updateDashboard();
     showToast("Backup imported successfully.");
   } catch (error) {
     console.error("Backup import failed.", error);
@@ -734,7 +806,8 @@ function openHistoryDetails(index) {
       courseName.textContent = `${item.course?.title || "Course"} (${item.course?.code || "—"})`;
       const grade = document.createElement("span");
       const gradeCode = normalizeGrade(item.grade);
-      const points = Object.hasOwn(GRADE_POINTS, gradeCode) ? GRADE_POINTS[gradeCode].toFixed(1) + " GPA points" : (SPECIAL_GRADES[gradeCode] || "No grade");
+      const pointsValue = gradePointsFor(gradeCode, entry.gradingScale || DEFAULT_GRADE_SCALE);
+      const points = pointsValue === null ? (SPECIAL_GRADES[gradeCode] || "No grade") : pointsValue.toFixed(1) + " GPA points";
       grade.textContent = (gradeCode || "—") + " · " + points;
       row.append(courseName, grade);
       elements.dialogBody.append(row);
