@@ -1,4 +1,4 @@
-import { courseCatalog } from "./courses.js";
+import { courseCatalog, ELECTIVE_COURSE_LIMIT } from "./courses.js";
 import { calculateAcademicMetrics, GRADE_OPTIONS, GRADE_POINTS, SPECIAL_GRADES, gradeFromGpa, gradeFromMark, normalizeGrade } from "./gpa-engine.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -100,6 +100,22 @@ function isValidGrade(grade) {
   return GRADE_OPTIONS.includes(normalizeGrade(grade));
 }
 
+function normalizeCourseSelections(items) {
+  const seen = new Set();
+  let electiveCount = 0;
+  return (Array.isArray(items) ? items : []).map(saved => {
+    const course = courseCatalog.find(item => item.code === saved?.code);
+    if (!course || seen.has(course.code)) return null;
+    if (course.elective && electiveCount >= ELECTIVE_COURSE_LIMIT) return null;
+    seen.add(course.code);
+    if (course.elective) electiveCount += 1;
+    const mark = saved.mark === "" || saved.mark === null || saved.mark === undefined ? null : Number(saved.mark);
+    const markValid = Number.isFinite(mark) && mark >= 0 && mark <= 100;
+    const grade = markValid ? gradeFromMark(mark) : normalizeGrade(saved.grade);
+    return { course, grade: isValidGrade(grade) ? grade : "", mark: markValid ? mark : null };
+  }).filter(Boolean);
+}
+
 function getCourseLevel(course) {
   const match = String(course.code).match(/\b([1-5])\d{3}\b/);
   return match ? match[1] : "other";
@@ -148,7 +164,7 @@ function updateDashboard() {
   elements.requiredGpa.textContent = result.requiredGpa === null ? "—" : result.requiredGpa.toFixed(2);
   elements.targetStatus.textContent = result.targetMessage;
   elements.targetStatus.className = `target-status${result.targetTone ? ` ${result.targetTone}` : ""}`;
-  elements.selectedCourseCaption.textContent = `${selectedCourses.length} courses selected`;
+  elements.selectedCourseCaption.textContent = `${selectedCourses.length} courses selected · ${selectedCourses.filter(item => item.course.elective).length}/${ELECTIVE_COURSE_LIMIT} electives`;
   return result;
 }
 
@@ -187,7 +203,7 @@ function renderCourses() {
     title.textContent = course.title;
     const meta = document.createElement("span");
     meta.className = "course-item-meta";
-    meta.textContent = `${course.code} · ${course.credits} credit hours`;
+    meta.textContent = `${course.code} · ${course.credits} credit hours${course.elective ? " · Elective option" : ""}`;
     info.append(title, meta);
 
     const add = document.createElement("button");
@@ -205,7 +221,7 @@ function renderCourses() {
 function renderSelectedCourses() {
   elements.selectedCourses.replaceChildren();
   elements.selectedCount.textContent = `${selectedCourses.length} selected`;
-  elements.selectedCourseCaption.textContent = `${selectedCourses.length} courses selected`;
+  elements.selectedCourseCaption.textContent = `${selectedCourses.length} courses selected · ${selectedCourses.filter(item => item.course.elective).length}/${ELECTIVE_COURSE_LIMIT} electives`;
   elements.selectedTotalCredits.textContent = String(selectedCourses.reduce((sum, item) => sum + item.course.credits, 0));
 
   if (!selectedCourses.length) {
@@ -234,7 +250,7 @@ function renderSelectedCourses() {
     title.textContent = item.course.title;
     const meta = document.createElement("span");
     meta.className = "selected-meta";
-    meta.textContent = `${item.course.code} · ${item.course.credits} credits`;
+    meta.textContent = `${item.course.code} · ${item.course.credits} credits${item.course.elective ? " · Elective" : ""}`;
     info.append(title, meta);
 
     const select = document.createElement("select");
@@ -386,18 +402,7 @@ function restoreDraft() {
   elements.previousPercentage.value = String(draft.previousPercentage ?? "");
   elements.degreeCredits.value = String(draft.degreeCredits ?? "189");
   elements.targetGpa.value = String(draft.targetGpa ?? "3.60");
-  if (Array.isArray(draft.selectedCourses)) {
-    const seen = new Set();
-    selectedCourses = draft.selectedCourses.map(saved => {
-      const course = courseCatalog.find(item => item.code === saved?.code);
-      if (!course || seen.has(course.code)) return null;
-      seen.add(course.code);
-      const mark = saved.mark === "" || saved.mark === null || saved.mark === undefined ? null : Number(saved.mark);
-      const markValid = Number.isFinite(mark) && mark >= 0 && mark <= 100;
-      const grade = markValid ? gradeFromMark(mark) : normalizeGrade(saved.grade);
-      return { course, grade: isValidGrade(grade) ? grade : "", mark: markValid ? mark : null };
-    }).filter(Boolean);
-  }
+  selectedCourses = normalizeCourseSelections(draft.selectedCourses);
   return true;
 }
 
@@ -412,19 +417,16 @@ function loadSavedGrades() {
     showToast("No saved course grades were found on this device.");
     return;
   }
-  selectedCourses = entries.map(([code, entry]) => {
-    const course = courseCatalog.find(item => item.code === code);
-    const gradeValue = typeof entry === "string" ? entry : entry?.grade;
-    const mark = typeof entry === "object" && entry !== null && entry.mark !== null && entry.mark !== undefined ? Number(entry.mark) : null;
-    const markValid = Number.isFinite(mark) && mark >= 0 && mark <= 100;
-    const grade = markValid ? gradeFromMark(mark) : normalizeGrade(gradeValue);
-    return course ? { course, grade: isValidGrade(grade) ? grade : "", mark: markValid ? mark : null } : null;
-  }).filter(Boolean);
+  selectedCourses = normalizeCourseSelections(entries.map(([code, entry]) => ({
+    code,
+    grade: typeof entry === "string" ? entry : entry?.grade,
+    mark: typeof entry === "object" && entry !== null ? entry.mark : null
+  })));
   renderCourses();
   renderSelectedCourses();
   updateDashboard();
   saveDraft();
-  showToast("Saved course grades loaded.");
+  showToast("Saved course grades loaded. No more than two elective options are allowed by the study plan.");
 }
 
 function resetCalculator() {
@@ -521,14 +523,8 @@ async function importBackup(file) {
       previousPercentage: String(draft.previousPercentage ?? ""),
       degreeCredits: String(draft.degreeCredits ?? "189"),
       targetGpa: String(draft.targetGpa ?? "3.60"),
-      selectedCourses: Array.isArray(draft.selectedCourses) ? draft.selectedCourses
-        .filter(item => item && courseCatalog.some(course => course.code === item.code))
-        .map(item => {
-          const mark = item.mark === "" || item.mark === null || item.mark === undefined ? null : Number(item.mark);
-          const validMark = Number.isFinite(mark) && mark >= 0 && mark <= 100;
-          const grade = validMark ? gradeFromMark(mark) : normalizeGrade(item.grade);
-          return { code: item.code, grade: isValidGrade(grade) ? grade : "", mark: validMark ? mark : null };
-        }) : []
+      selectedCourses: normalizeCourseSelections(draft.selectedCourses)
+        .map(item => ({ code: item.course.code, grade: item.grade, mark: item.mark }))
     };
     const importedGrades = data.savedGrades && typeof data.savedGrades === "object" && !Array.isArray(data.savedGrades)
       ? Object.fromEntries(Object.entries(data.savedGrades).filter(([code, value]) => {
@@ -742,7 +738,11 @@ function addCourse(code) {
   if (selectedCourses.some(item => item.course.code === code)) return;
   const course = courseCatalog.find(item => item.code === code);
   if (!course) return;
-  selectedCourses.push({ course, grade: "" });
+  if (course.elective && selectedCourses.filter(item => item.course.elective).length >= ELECTIVE_COURSE_LIMIT) {
+    showToast("The degree plan requires 4 elective credits: choose only two 2-credit elective options. Remove one selected elective to replace it.");
+    return;
+  }
+  selectedCourses.push({ course, grade: "", mark: null });
   renderCourses();
   renderSelectedCourses();
   updateDashboard();
