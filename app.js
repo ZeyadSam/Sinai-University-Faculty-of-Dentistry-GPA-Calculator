@@ -869,7 +869,7 @@ function addCourse(code) {
     showToast("The degree plan requires 4 elective credits: choose only two 2-credit elective options. Remove one selected elective to replace it.");
     return;
   }
-  selectedCourses.push({ course, grade: "", mark: null });
+  selectedCourses.push({ course, grade: "", mark: null, priorGrade: "", repeatNumber: 1 });
   renderCourses();
   renderSelectedCourses();
   updateDashboard();
@@ -887,7 +887,8 @@ function removeCourse(code) {
 function updateGrade(code, grade) {
   const selected = selectedCourses.find(item => item.course.code === code);
   if (!selected) return;
-  selected.grade = isValidGrade(grade) ? normalizeGrade(grade) : "";
+  const scaleId = getScaleId();
+  selected.grade = isValidGrade(grade, scaleId) ? normalizeGrade(grade) : "";
   selected.mark = null;
   updateDashboard();
   renderSelectedCourses();
@@ -907,11 +908,46 @@ function updateMark(code, rawMark) {
       return;
     }
     selected.mark = mark;
-    selected.grade = gradeFromMark(mark);
+    selected.grade = gradeFromMark(mark, getScaleId());
   }
   updateDashboard();
   renderSelectedCourses();
   saveDraft();
+}
+
+function updatePriorGrade(code, grade) {
+  const selected = selectedCourses.find(item => item.course.code === code);
+  if (!selected) return;
+  const scaleId = getScaleId();
+  selected.priorGrade = grade && isValidGrade(grade, scaleId) ? normalizeGrade(grade) : "";
+  if (!selected.priorGrade) selected.repeatNumber = 1;
+  updateDashboard();
+  renderSelectedCourses();
+  saveDraft();
+}
+
+function updateRepeatNumber(code, value) {
+  const selected = selectedCourses.find(item => item.course.code === code);
+  if (!selected || !selected.priorGrade) return;
+  selected.repeatNumber = Number(value) >= 2 ? 2 : 1;
+  updateDashboard();
+  renderSelectedCourses();
+  saveDraft();
+}
+
+function changeGradingScale() {
+  const scaleId = getScaleId();
+  selectedCourses = selectedCourses.map(item => {
+    const grade = item.mark !== null && item.mark !== undefined
+      ? gradeFromMark(item.mark, scaleId)
+      : (isValidGrade(item.grade, scaleId) ? normalizeGrade(item.grade) : "");
+    const priorGrade = isValidGrade(item.priorGrade, scaleId) ? normalizeGrade(item.priorGrade) : "";
+    return { ...item, grade, priorGrade, repeatNumber: priorGrade ? item.repeatNumber || 1 : 1 };
+  });
+  updateDashboard();
+  renderSelectedCourses();
+  saveDraft();
+  showToast("Grading scheme changed. Make sure the previous GPA and prior grades use the selected scheme.");
 }
 
 function setUpNavigation() {
@@ -952,6 +988,10 @@ function bindEvents() {
     if (select) updateGrade(select.dataset.gradeCode, select.value);
     const markInput = event.target.closest("[data-mark-code]");
     if (markInput) updateMark(markInput.dataset.markCode, markInput.value);
+    const priorGrade = event.target.closest("[data-prior-grade-code]");
+    if (priorGrade) updatePriorGrade(priorGrade.dataset.priorGradeCode, priorGrade.value);
+    const repeatNumber = event.target.closest("[data-repeat-number-code]");
+    if (repeatNumber) updateRepeatNumber(repeatNumber.dataset.repeatNumberCode, repeatNumber.value);
   });
   elements.selectedCourses.addEventListener("click", event => {
     const button = event.target.closest("[data-remove-code]");
@@ -969,6 +1009,7 @@ function bindEvents() {
     });
   });
 
+  elements.gradeScale.addEventListener("change", changeGradingScale);
   $("#save-grades").addEventListener("click", saveGrades);
   $("#load-grades").addEventListener("click", loadSavedGrades);
   $("#export-csv").addEventListener("click", exportCsv);
