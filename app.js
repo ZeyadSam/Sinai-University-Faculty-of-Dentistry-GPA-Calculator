@@ -1,21 +1,13 @@
 import { courseCatalog } from "./courses.js";
+import { calculateAcademicMetrics, GRADE_OPTIONS, GRADE_POINTS, gradeFromGpa } from "./gpa-engine.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
-const gradePoints = Object.freeze({
-  "A+": 4.0, A: 3.8, "A-": 3.6, "B+": 3.3, B: 3.0,
-  "C+": 2.7, C: 2.4, D: 2.0, F: 0.0, W: 0.0, I: 0.0, CN: 0.0
-});
-const gradeOptions = ["A+", "A", "A-", "B+", "B", "C+", "C", "D", "F", "W", "I", "CN"];
 const STORAGE_KEYS = Object.freeze({
   savedGrades: "savedGrades",
   history: "gradeHistory",
-  state: "gpaCalculatorData"
+  state: "gpaCalculatorData",
+  theme: "theme"
 });
-
-let selectedCourses = [];
-let savedGrades = readStorage(STORAGE_KEYS.savedGrades, {});
-let gradeHistory = readStorage(STORAGE_KEYS.history, []);
-let toastTimer = null;
 
 const elements = {
   previousGpa: $("#previous-gpa"),
@@ -41,183 +33,134 @@ const elements = {
   degreeCreditLabel: $("#degree-credit-label"),
   progressPercent: $("#progress-percent"),
   progressBar: $("#progress-bar"),
+  progressTrack: $("#progress-track"),
   remainingCredits: $("#remaining-credits"),
   requiredGpa: $("#required-gpa"),
   targetStatus: $("#target-status"),
   targetLabel: $("#target-label"),
   history: $("#grade-history"),
+  historyTrend: $("#history-trend"),
   toast: $("#toast"),
+  storageIndicator: $("#storage-indicator"),
   themeToggle: $("#theme-toggle"),
   themeIcon: $("#theme-icon"),
   sidebar: $("#sidebar"),
   navToggle: $("#nav-toggle"),
   detailsDialog: $("#details-dialog"),
   dialogTitle: $("#dialog-title"),
-  dialogBody: $("#dialog-body")
+  dialogBody: $("#dialog-body"),
+  importInput: $("#import-json")
 };
+
+let selectedCourses = [];
+let savedGrades = readStorage(STORAGE_KEYS.savedGrades, {});
+let gradeHistory = sanitizeHistory(readStorage(STORAGE_KEYS.history, []));
+let toastTimer = null;
 
 function readStorage(key, fallback) {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = window.localStorage.getItem(key);
     return raw === null ? fallback : JSON.parse(raw);
   } catch (error) {
-    console.warn("Could not read saved calculator data:", error);
+    console.warn(`Could not read ${key} from local storage.`, error);
     return fallback;
   }
 }
 
+function setStorageStatus(success) {
+  if (!elements.storageIndicator) return;
+  elements.storageIndicator.classList.toggle("error", !success);
+  elements.storageIndicator.lastChild.textContent = success ? " Saved on this device" : " Storage unavailable";
+}
+
 function writeStorage(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    window.localStorage.setItem(key, JSON.stringify(value));
+    setStorageStatus(true);
     return true;
   } catch (error) {
-    console.error("Could not save calculator data:", error);
+    console.error(`Could not save ${key} to local storage.`, error);
+    setStorageStatus(false);
     showToast("Your browser could not save this data. Check storage settings.");
     return false;
   }
 }
 
 function showToast(message) {
+  if (!elements.toast) return;
   elements.toast.textContent = message;
   elements.toast.classList.add("show");
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => elements.toast.classList.remove("show"), 2600);
+  toastTimer = window.setTimeout(() => elements.toast.classList.remove("show"), 2800);
 }
 
-function asNumber(value, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function getPreviousRecord() {
-  const rawGpa = elements.previousGpa.value.trim();
-  const rawCredits = elements.previousCredits.value.trim();
-  const gpa = rawGpa === "" ? 0 : asNumber(rawGpa, NaN);
-  const credits = rawCredits === "" ? 0 : asNumber(rawCredits, NaN);
-  const gpaValid = Number.isFinite(gpa) && gpa >= 0 && gpa <= 4;
-  const creditsValid = Number.isFinite(credits) && credits >= 0 && Number.isInteger(credits);
-  elements.previousGpa.setAttribute("aria-invalid", String(!gpaValid));
-  elements.previousCredits.setAttribute("aria-invalid", String(!creditsValid));
-  return {
-    gpa: gpaValid ? gpa : 0,
-    credits: creditsValid ? credits : 0,
-    valid: gpaValid && creditsValid,
-    needsGpa: creditsValid && credits > 0 && rawGpa === ""
-  };
-}
-
-function getDegreeSettings() {
-  const degreeCredits = clamp(Math.round(asNumber(elements.degreeCredits.value, 189)), 1, 300);
-  const targetGpa = clamp(asNumber(elements.targetGpa.value, 3.6), 0, 4);
-  return { degreeCredits, targetGpa };
+function isValidGrade(grade) {
+  return Object.hasOwn(GRADE_POINTS, grade);
 }
 
 function getCourseLevel(course) {
-  const match = course.code.match(/\b([1-5])\d{3}\b/);
+  const match = String(course.code).match(/\b([1-5])\d{3}\b/);
   return match ? match[1] : "other";
 }
 
-function gpaToPercentage(gpa) {
-  if (!Number.isFinite(gpa) || gpa <= 0) return 0;
-  if (gpa >= 4) return 95;
-  if (gpa < 2) return (gpa / 2) * 60;
-  if (gpa >= 3.8) return 90 + ((gpa - 3.8) / 0.2) * 5;
-  if (gpa >= 3.6) return 85 + ((gpa - 3.6) / 0.2) * 5;
-  if (gpa >= 3.3) return 80 + ((gpa - 3.3) / 0.3) * 5;
-  if (gpa >= 3.0) return 75 + ((gpa - 3.0) / 0.3) * 5;
-  if (gpa >= 2.7) return 70 + ((gpa - 2.7) / 0.3) * 5;
-  if (gpa >= 2.4) return 65 + ((gpa - 2.4) / 0.3) * 5;
-  return 60 + ((gpa - 2.0) / 0.4) * 5;
+function getMetrics() {
+  return calculateAcademicMetrics({
+    previousGpa: elements.previousGpa.value,
+    previousCredits: elements.previousCredits.value,
+    degreeCredits: elements.degreeCredits.value,
+    targetGpa: elements.targetGpa.value,
+    courses: selectedCourses
+  });
 }
 
-function gradeFromGpa(gpa) {
-  if (gpa >= 4) return "A+";
-  if (gpa >= 3.8) return "A";
-  if (gpa >= 3.6) return "A−";
-  if (gpa >= 3.3) return "B+";
-  if (gpa >= 3.0) return "B";
-  if (gpa >= 2.7) return "C+";
-  if (gpa >= 2.4) return "C";
-  if (gpa >= 2.0) return "D";
-  return "F";
+function updateInputValidity(metrics) {
+  elements.previousGpa.setAttribute("aria-invalid", String(!metrics.previous.valid && !metrics.previous.gpaValid));
+  elements.previousCredits.setAttribute("aria-invalid", String(!metrics.previous.valid && !metrics.previous.creditsValid));
+  elements.degreeCredits.setAttribute("aria-invalid", String(!metrics.degreeValid));
+  elements.targetGpa.setAttribute("aria-invalid", String(!metrics.targetValid));
 }
 
-function calculate() {
-  const previous = getPreviousRecord();
-  const settings = getDegreeSettings();
-  const gradedCourses = selectedCourses.filter(item => Object.hasOwn(gradePoints, item.grade));
-  const semesterCredits = gradedCourses.reduce((sum, item) => sum + item.course.credits, 0);
-  const selectedCredits = selectedCourses.reduce((sum, item) => sum + item.course.credits, 0);
-  const semesterPoints = gradedCourses.reduce((sum, item) => sum + gradePoints[item.grade] * item.course.credits, 0);
-  const semesterGpa = semesterCredits ? semesterPoints / semesterCredits : 0;
-  const cumulativeCredits = previous.credits + semesterCredits;
-  const cumulativePoints = previous.gpa * previous.credits + semesterPoints;
-  const cumulativeGpa = cumulativeCredits ? cumulativePoints / cumulativeCredits : 0;
-  const percentage = cumulativeCredits ? gpaToPercentage(cumulativeGpa) : 0;
-  const completedCredits = cumulativeCredits;
-  const remainingCredits = Math.max(0, settings.degreeCredits - completedCredits);
-  const progress = clamp((completedCredits / settings.degreeCredits) * 100, 0, 100);
-  let requiredGpa = null;
-  let targetMessage = "Add your previous academic record to calculate your target.";
-  let targetTone = "";
+function updateDashboard() {
+  const result = getMetrics();
+  updateInputValidity(result);
 
-  if (!previous.valid) {
-    targetMessage = "Check your previous GPA and credit-hour values.";
-    targetTone = "bad";
-  } else if (previous.needsGpa) {
-    targetMessage = "Enter your previous GPA to calculate a reliable target.";
-    targetTone = "warning";
-  } else if (cumulativeCredits >= settings.degreeCredits) {
-    if (cumulativeGpa >= settings.targetGpa) {
-      targetMessage = "Your target GPA has been achieved.";
-      targetTone = "good";
-      requiredGpa = 0;
-    } else {
-      targetMessage = "All degree credits are accounted for, but the target has not been reached.";
-      targetTone = "bad";
-    }
-  } else if (cumulativeGpa >= settings.targetGpa) {
-    targetMessage = "Your current cumulative GPA already meets the target.";
-    targetTone = "good";
-    requiredGpa = 0;
-  } else {
-    const needed = (settings.targetGpa * settings.degreeCredits - cumulativePoints) / remainingCredits;
-    if (needed > 4) {
-      targetMessage = "This target is no longer attainable with a maximum remaining GPA of 4.00.";
-      targetTone = "bad";
-    } else {
-      requiredGpa = clamp(needed, 0, 4);
-      targetMessage = "Average this GPA across the remaining degree credits to reach your target.";
-      targetTone = "warning";
-    }
-  }
-
-  return {
-    previous, settings, gradedCourses, semesterCredits, selectedCredits,
-    semesterPoints, semesterGpa, cumulativeCredits, cumulativePoints,
-    cumulativeGpa, percentage, completedCredits, remainingCredits,
-    progress, requiredGpa, targetMessage, targetTone
-  };
+  const hasCurrentGrades = result.semesterCredits > 0;
+  const hasCumulativeRecord = result.cumulativeCredits > 0;
+  elements.semesterGpa.textContent = hasCurrentGrades ? result.semesterGpa.toFixed(2) : "—";
+  elements.semesterCreditCaption.textContent = `${result.semesterCredits} graded credit hours`;
+  elements.cumulativeGpa.textContent = hasCumulativeRecord ? result.cumulativeGpa.toFixed(2) : "—";
+  elements.cumulativeGrade.textContent = hasCumulativeRecord ? gradeFromGpa(result.cumulativeGpa) : "N/A";
+  elements.percentage.textContent = result.percentage === null ? "—" : result.percentage.toFixed(2);
+  elements.totalCreditHours.textContent = String(result.semesterCredits);
+  elements.completedCredits.textContent = String(result.cumulativeCredits);
+  elements.degreeCreditLabel.textContent = String(result.degreeCredits);
+  elements.progressPercent.textContent = `${result.progress.toFixed(1)}%`;
+  elements.progressBar.style.width = `${result.progress}%`;
+  elements.progressTrack.setAttribute("aria-valuenow", String(Math.round(result.progress)));
+  elements.remainingCredits.textContent = String(result.remainingCredits);
+  elements.targetLabel.textContent = `${result.targetGpa.toFixed(2)} / 4.00`;
+  elements.requiredGpa.textContent = result.requiredGpa === null ? "—" : result.requiredGpa.toFixed(2);
+  elements.targetStatus.textContent = result.targetMessage;
+  elements.targetStatus.className = `target-status${result.targetTone ? ` ${result.targetTone}` : ""}`;
+  elements.selectedCourseCaption.textContent = `${selectedCourses.length} courses selected`;
+  return result;
 }
 
 function renderCourses() {
   const searchTerm = elements.search.value.trim().toLocaleLowerCase();
   const selectedLevel = elements.level.value;
+  const selectedCodes = new Set(selectedCourses.map(item => item.course.code));
   const available = courseCatalog.filter(course => {
-    const searchable = (course.title + " " + course.code).toLocaleLowerCase();
+    const searchable = `${course.title} ${course.code}`.toLocaleLowerCase();
     const matchesText = searchable.includes(searchTerm);
     const matchesLevel = selectedLevel === "all" || getCourseLevel(course) === selectedLevel;
-    const notSelected = !selectedCourses.some(item => item.course.code === course.code);
+    const notSelected = !selectedCodes.has(course.code);
     return matchesText && matchesLevel && notSelected;
   });
 
   elements.courseList.replaceChildren();
-  elements.courseCount.textContent = courseCatalog.length + " courses";
-  elements.catalogResults.textContent = "Showing " + available.length + " available";
+  elements.courseCount.textContent = `${courseCatalog.length} courses`;
+  elements.catalogResults.textContent = `Showing ${available.length} available`;
 
   if (!available.length) {
     const empty = document.createElement("div");
@@ -238,14 +181,15 @@ function renderCourses() {
     title.textContent = course.title;
     const meta = document.createElement("span");
     meta.className = "course-item-meta";
-    meta.textContent = course.code + " · " + course.credits + " credit hours";
+    meta.textContent = `${course.code} · ${course.credits} credit hours`;
     info.append(title, meta);
+
     const add = document.createElement("button");
     add.className = "add-button";
     add.type = "button";
     add.textContent = "+";
     add.dataset.addCode = course.code;
-    add.setAttribute("aria-label", "Add " + course.title);
+    add.setAttribute("aria-label", `Add ${course.title}`);
     row.append(info, add);
     fragment.append(row);
   }
@@ -254,18 +198,16 @@ function renderCourses() {
 
 function renderSelectedCourses() {
   elements.selectedCourses.replaceChildren();
-  elements.selectedCount.textContent = selectedCourses.length + " selected";
-  elements.selectedCourseCaption.textContent = selectedCourses.length + " courses selected";
-  elements.selectedTotalCredits.textContent = String(
-    selectedCourses.reduce((sum, item) => sum + item.course.credits, 0)
-  );
+  elements.selectedCount.textContent = `${selectedCourses.length} selected`;
+  elements.selectedCourseCaption.textContent = `${selectedCourses.length} courses selected`;
+  elements.selectedTotalCredits.textContent = String(selectedCourses.reduce((sum, item) => sum + item.course.credits, 0));
 
   if (!selectedCourses.length) {
     const empty = document.createElement("div");
     empty.className = "selected-empty";
     const symbol = document.createElement("span");
     symbol.className = "empty-symbol";
-    symbol.textContent = "＋";
+    symbol.textContent = "+";
     const message = document.createElement("strong");
     message.textContent = "Your semester is empty";
     const hint = document.createElement("div");
@@ -286,21 +228,21 @@ function renderSelectedCourses() {
     title.textContent = item.course.title;
     const meta = document.createElement("span");
     meta.className = "selected-meta";
-    meta.textContent = item.course.code + " · " + item.course.credits + " credits";
+    meta.textContent = `${item.course.code} · ${item.course.credits} credits`;
     info.append(title, meta);
 
     const select = document.createElement("select");
     select.className = "grade-select";
     select.dataset.gradeCode = item.course.code;
-    select.setAttribute("aria-label", "Grade for " + item.course.title);
+    select.setAttribute("aria-label", `Grade for ${item.course.title}`);
     const placeholder = document.createElement("option");
     placeholder.value = "";
     placeholder.textContent = "Select grade";
     select.append(placeholder);
-    for (const grade of gradeOptions) {
+    for (const grade of GRADE_OPTIONS) {
       const option = document.createElement("option");
       option.value = grade;
-      option.textContent = grade + "  ·  " + gradePoints[grade].toFixed(1);
+      option.textContent = `${grade} · ${GRADE_POINTS[grade].toFixed(1)}`;
       select.append(option);
     }
     select.value = item.grade || "";
@@ -310,122 +252,100 @@ function renderSelectedCourses() {
     remove.type = "button";
     remove.textContent = "×";
     remove.dataset.removeCode = item.course.code;
-    remove.setAttribute("aria-label", "Remove " + item.course.title);
+    remove.setAttribute("aria-label", `Remove ${item.course.title}`);
     row.append(info, select, remove);
     fragment.append(row);
-  }
-  elements.selectedCourses.append(fragment);
-}
-
-function updateDashboard() {
-  const result = calculate();
-  const cumulative = result.cumulativeCredits > 0;
-  elements.semesterGpa.textContent = result.semesterCredits ? result.semesterGpa.toFixed(2) : "—";
-  elements.semesterCreditCaption.textContent = result.semesterCredits + " graded credit hours";
-  elements.cumulativeGpa.textContent = cumulative ? result.cumulativeGpa.toFixed(2) : "—";
-  elements.cumulativeGrade.textContent = cumulative ? gradeFromGpa(result.cumulativeGpa) : "N/A";
-  elements.percentage.textContent = cumulative ? result.percentage.toFixed(2) : "0.00";
-  elements.totalCreditHours.textContent = String(result.semesterCredits);
-  elements.completedCredits.textContent = String(result.completedCredits);
-  elements.degreeCreditLabel.textContent = String(result.settings.degreeCredits);
-  elements.progressPercent.textContent = result.progress.toFixed(1) + "%";
-  elements.progressBar.style.width = result.progress + "%";
-  elements.remainingCredits.textContent = String(result.remainingCredits);
-  elements.targetLabel.textContent = result.settings.targetGpa.toFixed(2) + " / 4.00";
-  elements.requiredGpa.textContent = result.requiredGpa === null ? "—" : result.requiredGpa.toFixed(2);
-  elements.targetStatus.textContent = result.targetMessage;
-  elements.targetStatus.className = "target-status" + (result.targetTone ? " " + result.targetTone : "");
-  return result;
+  }  elements.selectedCourses.append(fragment);
 }
 
 function saveDraft() {
   const draft = {
-    version: 2,
+    version: 3,
     previousGpa: elements.previousGpa.value,
     previousCredits: elements.previousCredits.value,
     degreeCredits: elements.degreeCredits.value,
     targetGpa: elements.targetGpa.value,
     selectedCourses: selectedCourses.map(item => ({ code: item.course.code, grade: item.grade || "" }))
   };
-  writeStorage(STORAGE_KEYS.state, draft);
+  return writeStorage(STORAGE_KEYS.state, draft);
+}
+
+function sanitizeHistory(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter(entry => entry && typeof entry === "object" && Array.isArray(entry.courses)).slice(0, 20);
+}
+
+function persistHistory() {
+  return writeStorage(STORAGE_KEYS.history, gradeHistory);
 }
 
 function saveGrades() {
-  const result = calculate();
-  if (!result.previous.valid) {
-    showToast("Please correct the previous GPA and credit-hour values first.");
+  const result = updateDashboard();
+  if (!result.previous.valid || !result.degreeValid || !result.targetValid) {
+    showToast("Please correct the highlighted academic settings before saving.");
+    return;
+  }
+  const graded = selectedCourses.filter(item => isValidGrade(item.grade));
+  if (!graded.length) {
+    showToast("Choose at least one course grade before saving a semester snapshot.");
     return;
   }
 
-  savedGrades = {};
-  for (const item of selectedCourses) {
-    if (Object.hasOwn(gradePoints, item.grade)) savedGrades[item.course.code] = item.grade;
-  }
-
+  savedGrades = Object.fromEntries(graded.map(item => [item.course.code, item.grade]));
   const gradesSaved = writeStorage(STORAGE_KEYS.savedGrades, savedGrades);
-  saveDraft();
-
-  if (result.gradedCourses.length) {
-    const snapshot = {
-      timestamp: new Date().toISOString(),
-      semesterGpa: result.semesterGpa.toFixed(2),
-      cumulativeGpa: result.cumulativeGpa.toFixed(2),
-      percentage: result.percentage.toFixed(2),
-      credits: result.semesterCredits,
-      courses: result.gradedCourses.map(item => ({
-        course: { ...item.course },
-        grade: item.grade
-      }))
-    };
-    gradeHistory = [snapshot, ...gradeHistory].slice(0, 20);
-    writeStorage(STORAGE_KEYS.history, gradeHistory);
-    renderHistory();
-  }
-  showToast(gradesSaved ? (result.gradedCourses.length ? "Grades and semester snapshot saved." : "Your calculator settings were saved.") : "Could not save your results.");
+  const draftSaved = saveDraft();
+  const snapshot = {
+    timestamp: new Date().toISOString(),
+    semesterGpa: result.semesterGpa.toFixed(2),
+    cumulativeGpa: result.cumulativeGpa.toFixed(2),
+    percentage: result.percentage?.toFixed(2) ?? "—",
+    credits: result.semesterCredits,
+    previousGpa: result.previous.gpa,
+    previousCredits: result.previous.credits,
+    courses: graded.map(item => ({ course: { ...item.course }, grade: item.grade }))
+  };
+  gradeHistory = [snapshot, ...gradeHistory].slice(0, 20);
+  const historySaved = persistHistory();
+  renderHistory();
+  showToast(gradesSaved && draftSaved && historySaved ? "Grades and semester snapshot saved." : "Some data could not be saved. Check browser storage.");
 }
 
 function restoreDraft() {
   const draft = readStorage(STORAGE_KEYS.state, null);
   if (!draft || typeof draft !== "object") return false;
 
-  elements.previousGpa.value = draft.previousGpa ?? "";
-  elements.previousCredits.value = draft.previousCredits ?? "";
-  elements.degreeCredits.value = draft.degreeCredits ?? "189";
-  elements.targetGpa.value = draft.targetGpa ?? "3.60";
+  elements.previousGpa.value = String(draft.previousGpa ?? "");
+  elements.previousCredits.value = String(draft.previousCredits ?? "");
+  elements.degreeCredits.value = String(draft.degreeCredits ?? "189");
+  elements.targetGpa.value = String(draft.targetGpa ?? "3.60");
 
   if (Array.isArray(draft.selectedCourses)) {
-    selectedCourses = draft.selectedCourses
-      .map(saved => {
-        const course = courseCatalog.find(item => item.code === saved.code);
-        const grade = Object.hasOwn(gradePoints, saved.grade) ? saved.grade : "";
-        return course ? { course, grade } : null;
-      })
-      .filter(Boolean);
+    const seen = new Set();
+    selectedCourses = draft.selectedCourses.map(saved => {
+      const course = courseCatalog.find(item => item.code === saved?.code);
+      if (!course || seen.has(course.code)) return null;
+      seen.add(course.code);
+      return { course, grade: isValidGrade(saved.grade) ? saved.grade : "" };
+    }).filter(Boolean);
   }
   return true;
 }
 
 function loadSavedGrades() {
-  savedGrades = readStorage(STORAGE_KEYS.savedGrades, {});
-  const draft = readStorage(STORAGE_KEYS.state, null);
-  if (draft && typeof draft === "object") {
-    elements.previousGpa.value = draft.previousGpa ?? "";
-    elements.previousCredits.value = draft.previousCredits ?? "";
-    elements.degreeCredits.value = draft.degreeCredits ?? "189";
-    elements.targetGpa.value = draft.targetGpa ?? "3.60";
-  }
-
-  const savedEntries = Object.entries(savedGrades || {});
-  if (!savedEntries.length) {
+  const stored = readStorage(STORAGE_KEYS.savedGrades, {});
+  savedGrades = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+  const entries = Object.entries(savedGrades).filter(([code, grade]) =>
+    courseCatalog.some(course => course.code === code) && isValidGrade(grade)
+  );
+  if (!entries.length) {
     showToast("No saved course grades were found on this device.");
     return;
   }
 
-  selectedCourses = savedEntries.map(([code, grade]) => {
+  selectedCourses = entries.map(([code, grade]) => {
     const course = courseCatalog.find(item => item.code === code);
-    return course ? { course, grade: Object.hasOwn(gradePoints, grade) ? grade : "" } : null;
+    return course ? { course, grade } : null;
   }).filter(Boolean);
-
   renderCourses();
   renderSelectedCourses();
   updateDashboard();
@@ -448,12 +368,22 @@ function resetCalculator() {
 }
 
 function csvCell(value) {
-  const text = String(value ?? "");
-  return '"' + text.replaceAll('"', '""') + '"';
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function downloadFile(filename, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1200);
 }
 
 function exportCsv() {
-  const result = calculate();
+  const result = updateDashboard();
   if (!selectedCourses.length) {
     showToast("Add courses before exporting a report.");
     return;
@@ -465,7 +395,7 @@ function exportCsv() {
     ["Previous credits", result.previous.credits],
     ["Semester GPA", result.semesterCredits ? result.semesterGpa.toFixed(2) : "—"],
     ["Cumulative GPA", result.cumulativeCredits ? result.cumulativeGpa.toFixed(2) : "—"],
-    ["Estimated percentage", result.percentage.toFixed(2) + "%"],
+    ["Estimated percentage", result.percentage === null ? "—" : `${result.percentage.toFixed(2)}%`],
     ["Graded credit hours", result.semesterCredits],
     [],
     ["Course code", "Course title", "Credits", "Grade", "Grade points"]
@@ -476,24 +406,90 @@ function exportCsv() {
       item.course.title,
       item.course.credits,
       item.grade || "Not graded",
-      Object.hasOwn(gradePoints, item.grade) ? gradePoints[item.grade].toFixed(2) : ""
+      isValidGrade(item.grade) ? GRADE_POINTS[item.grade].toFixed(2) : ""
     ]);
   }
-  const csv = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "Sinai_Dental_GPA_Report.csv";
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const csv = `\uFEFF${rows.map(row => row.map(csvCell).join(",")).join("\r\n")}`;
+  downloadFile("Sinai_Dental_GPA_Report.csv", csv, "text/csv;charset=utf-8");
   showToast("CSV report exported.");
+}
+
+function exportBackup() {
+  const payload = {
+    app: "Sinai Dental GPA Studio",
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    draft: {
+      version: 3,
+      previousGpa: elements.previousGpa.value,
+      previousCredits: elements.previousCredits.value,
+      degreeCredits: elements.degreeCredits.value,
+      targetGpa: elements.targetGpa.value,
+      selectedCourses: selectedCourses.map(item => ({ code: item.course.code, grade: item.grade || "" }))
+    },
+    savedGrades,
+    history: gradeHistory,
+    theme: document.documentElement.dataset.theme
+  };
+  downloadFile("Sinai_Dental_GPA_Backup.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+  showToast("Backup file exported.");
+}
+
+async function importBackup(file) {
+  if (!file) return;
+  try {
+    const raw = await file.text();
+    const data = JSON.parse(raw);
+    if (!data || data.app !== "Sinai Dental GPA Studio" || !data.draft || typeof data.draft !== "object") {
+      throw new Error("Unsupported backup format");
+    }
+    if (!window.confirm("Importing this backup will replace the current calculator data on this device. Continue?")) return;
+
+    const draft = data.draft;
+    const normalizedDraft = {
+      version: 3,
+      previousGpa: String(draft.previousGpa ?? ""),
+      previousCredits: String(draft.previousCredits ?? ""),
+      degreeCredits: String(draft.degreeCredits ?? "189"),
+      targetGpa: String(draft.targetGpa ?? "3.60"),
+      selectedCourses: Array.isArray(draft.selectedCourses)
+        ? draft.selectedCourses.filter(item => item && courseCatalog.some(course => course.code === item.code))
+          .map(item => ({ code: item.code, grade: isValidGrade(item.grade) ? item.grade : "" }))
+        : []
+    };
+    const importedGrades = data.savedGrades && typeof data.savedGrades === "object" && !Array.isArray(data.savedGrades)
+      ? Object.fromEntries(Object.entries(data.savedGrades).filter(([code, grade]) => courseCatalog.some(course => course.code === code) && isValidGrade(grade)))
+      : {};
+    const importedHistory = sanitizeHistory(data.history);
+
+    const allSaved = [
+      writeStorage(STORAGE_KEYS.state, normalizedDraft),
+      writeStorage(STORAGE_KEYS.savedGrades, importedGrades),
+      writeStorage(STORAGE_KEYS.history, importedHistory)
+    ].every(Boolean);
+    if (!allSaved) throw new Error("Local storage write failed");
+
+    savedGrades = importedGrades;
+    gradeHistory = importedHistory;
+    restoreDraft();
+    if (data.theme === "dark" || data.theme === "light") setTheme(data.theme);
+    renderCourses();
+    renderSelectedCourses();
+    renderHistory();
+    updateDashboard();
+    showToast("Backup imported successfully.");
+  } catch (error) {
+    console.error("Backup import failed.", error);
+    showToast("This backup file is invalid or could not be imported.");
+  } finally {
+    elements.importInput.value = "";
+  }
 }
 
 function renderHistory() {
   elements.history.replaceChildren();
-  if (!Array.isArray(gradeHistory) || !gradeHistory.length) {
+  renderHistoryTrend();
+  if (!gradeHistory.length) {
     const empty = document.createElement("div");
     empty.className = "history-empty";
     empty.textContent = "No saved semesters yet. Save a set of graded courses to create your first snapshot.";
@@ -522,8 +518,8 @@ function renderHistory() {
       dateText,
       entry.semesterGpa ?? "—",
       entry.cumulativeGpa ?? "—",
-      String(entry.credits ?? (Array.isArray(entry.courses) ? entry.courses.reduce((sum, c) => sum + (c.course?.credits || 0), 0) : 0)),
-      String(entry.percentage ?? "—") + "%"
+      String(entry.credits ?? 0),
+      `${entry.percentage ?? "—"}%`
     ];
     values.forEach((value, valueIndex) => {
       const cell = document.createElement("td");
@@ -541,9 +537,40 @@ function renderHistory() {
     row.append(actionCell);
     tbody.append(row);
   });
-
   table.append(thead, tbody);
   elements.history.append(table);
+}
+
+function renderHistoryTrend() {
+  elements.historyTrend.replaceChildren();
+  if (!gradeHistory.length) {
+    const empty = document.createElement("div");
+    empty.className = "trend-empty";
+    empty.textContent = "Your saved cumulative GPA trend will appear here.";
+    elements.historyTrend.append(empty);
+    return;
+  }
+  const chronological = [...gradeHistory].slice(0, 6).reverse();
+  chronological.forEach((entry, index) => {
+    const value = Number(entry.cumulativeGpa);
+    if (!Number.isFinite(value)) return;
+    const item = document.createElement("div");
+    item.className = "trend-item";
+    const label = document.createElement("span");
+    label.className = "trend-value";
+    label.textContent = value.toFixed(2);
+    const track = document.createElement("div");
+    track.className = "trend-track";
+    const bar = document.createElement("div");
+    bar.className = "trend-bar";
+    bar.style.height = `${Math.max(3, Math.min(100, value / 4 * 100))}%`;
+    track.append(bar);
+    const caption = document.createElement("span");
+    caption.className = "trend-label";
+    caption.textContent = `#${index + 1}`;
+    item.append(label, track, caption);
+    elements.historyTrend.append(item);
+  });
 }
 
 function openHistoryDetails(index) {
@@ -552,13 +579,12 @@ function openHistoryDetails(index) {
 
   elements.dialogTitle.textContent = "Semester details";
   elements.dialogBody.replaceChildren();
-
   const summary = document.createElement("div");
   summary.className = "dialog-summary";
   const stats = [
     ["Semester GPA", entry.semesterGpa ?? "—"],
     ["Cumulative GPA", entry.cumulativeGpa ?? "—"],
-    ["Percentage", (entry.percentage ?? "—") + "%"]
+    ["Percentage", `${entry.percentage ?? "—"}%`]
   ];
   for (const [label, value] of stats) {
     const stat = document.createElement("div");
@@ -583,10 +609,10 @@ function openHistoryDetails(index) {
       const row = document.createElement("div");
       row.className = "dialog-course";
       const courseName = document.createElement("strong");
-      courseName.textContent = (item.course?.title || "Course") + " (" + (item.course?.code || "—") + ")";
+      courseName.textContent = `${item.course?.title || "Course"} (${item.course?.code || "—"})`;
       const grade = document.createElement("span");
-      const points = Object.hasOwn(gradePoints, item.grade) ? gradePoints[item.grade].toFixed(1) : "—";
-      grade.textContent = (item.grade || "—") + " · " + points + " points";
+      const points = isValidGrade(item.grade) ? GRADE_POINTS[item.grade].toFixed(1) : "—";
+      grade.textContent = `${item.grade || "—"} · ${points} points`;
       row.append(courseName, grade);
       elements.dialogBody.append(row);
     }
@@ -602,10 +628,13 @@ function clearHistory() {
     return;
   }
   if (!window.confirm("Delete all saved grade-history snapshots? This cannot be undone.")) return;
+  const previousHistory = gradeHistory;
   gradeHistory = [];
-  if (writeStorage(STORAGE_KEYS.history, gradeHistory)) {
+  if (persistHistory()) {
     renderHistory();
     showToast("Grade history cleared.");
+  } else {
+    gradeHistory = previousHistory;
   }
 }
 
@@ -618,7 +647,22 @@ function setTheme(theme) {
   elements.themeIcon.innerHTML = isDark
     ? '<path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42m-9.88 9.88-1.42 1.42"/><circle cx="12" cy="12" r="4"/>'
     : '<path d="M20.3 15.1A8.5 8.5 0 0 1 8.9 3.7 8.5 8.5 0 1 0 20.3 15.1Z"/>';
-  try { localStorage.setItem("theme", nextTheme); } catch (error) { console.warn("Theme preference could not be saved.", error); }
+  // Keep this preference as a plain string for backward compatibility with v1.
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.theme, nextTheme);
+  } catch (error) {
+    console.warn("Could not save the theme preference.", error);
+  }
+}
+
+function readTheme() {
+  // Older releases stored the theme without JSON encoding.
+  try {
+    return window.localStorage.getItem(STORAGE_KEYS.theme) === "dark" ? "dark" : "light";
+  } catch (error) {
+    console.warn("Could not read the theme preference.", error);
+    return "light";
+  }
 }
 
 function addCourse(code) {
@@ -643,7 +687,7 @@ function removeCourse(code) {
 function updateGrade(code, grade) {
   const selected = selectedCourses.find(item => item.course.code === code);
   if (!selected) return;
-  selected.grade = Object.hasOwn(gradePoints, grade) ? grade : "";
+  selected.grade = isValidGrade(grade) ? grade : "";
   updateDashboard();
   saveDraft();
 }
@@ -667,10 +711,10 @@ function setUpNavigation() {
       const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
       if (!visible) return;
       document.querySelectorAll(".nav-link").forEach(link => {
-        link.classList.toggle("active", link.getAttribute("href") === "#" + visible.target.id);
+        link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`);
       });
     }, { rootMargin: "-18% 0px -68% 0px", threshold: [0, .15, .4] });
-    document.querySelectorAll("main > section[id], main[id]").forEach(section => observer.observe(section));
+    document.querySelectorAll("main > section[id]").forEach(section => observer.observe(section));
   }
 }
 
@@ -704,6 +748,9 @@ function bindEvents() {
   $("#save-grades").addEventListener("click", saveGrades);
   $("#load-grades").addEventListener("click", loadSavedGrades);
   $("#export-csv").addEventListener("click", exportCsv);
+  $("#backup-json").addEventListener("click", exportBackup);
+  $("#import-json-button").addEventListener("click", () => elements.importInput.click());
+  elements.importInput.addEventListener("change", event => importBackup(event.target.files?.[0]));
   $("#print-report").addEventListener("click", () => window.print());
   $("#reset").addEventListener("click", resetCalculator);
   $("#clear-history").addEventListener("click", clearHistory);
@@ -719,7 +766,18 @@ function bindEvents() {
 }
 
 function initialize() {
-  setTheme(readTheme());
+  if (Object.values(elements).some(element => !element)) {
+    console.error("GPA Studio could not initialize because a required UI element is missing.");
+    return;
+  }
+  const theme = readTheme();
+  document.documentElement.dataset.theme = theme;
+  const isDark = theme === "dark";
+  elements.themeToggle.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
+  elements.themeToggle.setAttribute("aria-pressed", String(isDark));
+  elements.themeIcon.innerHTML = isDark
+    ? '<path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42m-9.88 9.88-1.42 1.42"/><circle cx="12" cy="12" r="4"/>'
+    : '<path d="M20.3 15.1A8.5 8.5 0 0 1 8.9 3.7 8.5 8.5 0 1 0 20.3 15.1Z"/>';
   restoreDraft();
   bindEvents();
   setUpNavigation();
@@ -727,14 +785,6 @@ function initialize() {
   renderSelectedCourses();
   renderHistory();
   updateDashboard();
-}
-
-function readTheme() {
-  try {
-    return localStorage.getItem("theme") || "light";
-  } catch {
-    return "light";
-  }
 }
 
 initialize();
