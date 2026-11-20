@@ -1,0 +1,20 @@
+/* Small interaction and accessibility refinements */
+.mobile-menu .menu-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: currentColor;
+}
+.mobile-menu .menu-icon::before {
+  content: "☰";
+  font-size: 18px;
+  line-height: 1;
+}
+.field-wrap input[aria-invalid="true"] {
+  border-color: #cf746b;
+  box-shadow: 0 0 0 2px rgba(207, 116, 107, .12);
+}
+@media (max-width: 650px) {
+  .mobile-menu { flex: 0 0 40px; }
+}
